@@ -33,4 +33,5 @@ Yawen Hu: R
 ### Tutorial
 1. Estimate propensity score by fitting a logistic regression model.
 2. Use Nearest-Neighborhood to match the diabete and non-diabete patients on the estimated propensity scores.
-3. Use T-test to figure out the effect of diabete on heart attack using propensity score-matched sample.
+3. Inverse weighting by propensity score and use inverse propensity weights to analyse data.
+4. Use T-test to figure out the effect of diabete on heart attack using propensity score-matched sample.
