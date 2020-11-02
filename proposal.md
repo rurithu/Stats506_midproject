@@ -4,8 +4,7 @@
 Creating propensity score weights and using inverse propensity weights and/or matching for analysis.
 
 #### Concept
-1. Propensity score weights
-2. Propensity score matching
+1. Propensity score matching
    
 #### Data
 [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) Data used in class
@@ -18,6 +17,8 @@ The predictor used for estimating propensity score:
 
 ### Group Member and Software
 Hongfan Chen: SAS  
+- Key command: `proc psmatch` and `proc logistic`
+  
 Rithu Uppalapati: Stata  
 Zhihao Xu: Python
 - Core packages: 
@@ -30,6 +31,6 @@ Yawen Hu: R
     - `GLM` and `MatchIt`: propensity score weight and match 
 
 ### Tutorial
-1. Estimate propensity score weights by fitting a logistic regression model using whether or not an adult patient has diabete as response and the relatively Confounders factors and demographic variable as predictor.
+1. Estimate propensity score by fitting a logistic regression model.
 2. Use Nearest-Neighborhood to match the diabete and non-diabete patients on the estimated propensity scores.
-3. Estimate the effect of diabete on heart attack using propensity score-matched sample.
+3. Use T-test to estimate the effect of diabete on heart attack using propensity score-matched sample.
