@@ -18,12 +18,12 @@ Demographic Variable: age, sex, race, education, marital status, income
 ### Group Member and Software
 Hongfan Chen: SAS  
 Rithu Uppalapati: Stata  
-**Zhihao Xu**: Python  
+Zhihao Xu: Python
 - Core packages: 
     - `numpy` / `pandas`: data I/O and manuplication  
     - `sklearn.linear_model` and `sklearn.neighbors`: propensity score weight and match  
 
-Yawen Hu: R  
+Yawen Hu: R
 - Core packages: 
     - `tidyverse`: data I/O and manuplication  
     - `GLM` and `MatchIt`: propensity score weight and match 
