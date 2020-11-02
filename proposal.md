@@ -21,12 +21,12 @@ Hongfan Chen: SAS
 Rithu Uppalapati: Stata  
 Zhihao Xu: Python
 - Core packages: 
-    - `numpy` / `pandas`: data I/O and manuplication  
+    - `numpy` / `pandas`: data I/O and manipulation  
     - `sklearn.linear_model` and `sklearn.neighbors`: propensity score weight and match  
 
 Yawen Hu: R
 - Core packages: 
-    - `tidyverse`: data I/O and manuplication  
+    - `tidyverse`: data I/O and manipulation  
     - `GLM` and `MatchIt`: propensity score weight and match 
 
 ### Procedure
