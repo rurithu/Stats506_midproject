@@ -4,21 +4,48 @@
 Creating propensity score weights and using inverse propensity weights and/or matching for analysis.
 
 #### Concept
-1. Propensity score weights
+1. Propensity score weight estimate
 2. Propensity score matching
+3. Inverse propensity weights
    
 #### Data
 [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) Data used in class
 
 #### Research Question
-Whether or not adult patients with diabetes have higher risk for heart attack (myocardial infarction) in the United States.  
-The predictor used for estimating propensity score:  
-`heart_attack`(relatives have heart attack or not), `gender`, `age`, `race`, `edu`, `annual_income`, `bmi`, `smoke_life`, `year_smoke`(year of smoke), `phy_vigorous`(doing vigorous work activity or not), `phy_moderate`(doing moderate work activity or not), `blood_press`(being told high blood pressure), `blood_press2`(being told high blood pressure 2+ more times or not), `year_hyper`(year of hypertension), `hyper_med`, `hbp_med`(taking hypertension/HBP medicine or not), `high_chol`(being told high cholesterol level or not)
+Whether or not adult patients with diabetes have higher risk for heart attack (myocardial infarction) in the United States?  
+The predictor used for estimating propensity score: 
+| Predictor      | Description                                         |
+| -------------- | ----------------------------------------------------|
+| `heart_attack` | Relatives have heart attack or not                  |
+| `gender`       | Gender of the participant                           |
+| `age`          | Age of the participant                              |
+| `race`         | Race of the participant                             |
+| `edu`          | Education Level                                     | 
+| `annual_income`| Annual Income                                       | 
+| `bmi`          | Body Mass Index                                     |
+| `smoke_life`   | Smoked at least 100 cigarettes in life or not       |
+| `year_smoke`   | Year of smoke                                       |
+| `phy_vigorous` | Doing vigorous work activity or not                 | 
+| `phy_moderate` | Doing moderate work activity or not                 |
+| `blood_press`  | Being told high blood pressure                      | 
+| `blood_press2` | Being told high blood pressure 2+ more times or not |
+| `year_hyper`   | Year of hypertension                                | 
+| `hyper_med`    | Taking hypertension medicine or not                 |
+| `hbp_med`      | Taking HBP medicine or not                          | 
+| `high_chol`    | Being told high cholesterol level or not            |
+
+**Note:** For all the binary variable here with value 1 and 0, 1 = Yes and 0 = No
 
 
 ### Group Member and Software
 Hongfan Chen: SAS  
+- Key command: `proc psmatch`, `proc logistic`
+  
 Rithu Uppalapati: Stata  
+- Key command: 
+    - `psmatch2` command by default reports the average treatment effect on the treated (which it refers to as ATT). 
+    - `teffects` command by default reports the average treatment effect (ATE) but will calculate the average treatment effect on the treated
+
 Zhihao Xu: Python
 - Core packages: 
     - `numpy` / `pandas`: data I/O and manipulation  
@@ -29,7 +56,8 @@ Yawen Hu: R
     - `tidyverse`: data I/O and manipulation  
     - `GLM` and `MatchIt`: propensity score weight and match 
 
-### Procedure
-1. Estimate propensity score weights by fitting a logistic regression model using whether or not an adult patient has diabete as response and the relatively Confounders factors and demographic variable as predictor.
+### Tutorial
+1. Estimate propensity score by fitting a logistic regression model.
 2. Use Nearest-Neighborhood to match the diabete and non-diabete patients on the estimated propensity scores.
-3. Estimate the effect of diabete on heart attack using propensity score-matched sample.
+3. Inverse weighting by propensity score and use inverse propensity weights to analyse data.
+4. Use T-test to figure out the effect of diabete on heart attack using propensity score-matched sample.
