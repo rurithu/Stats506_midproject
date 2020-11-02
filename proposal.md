@@ -13,26 +13,30 @@ Creating propensity score weights and using inverse propensity weights and/or ma
 
 #### Research Question
 Whether or not adult patients with diabetes have higher risk for heart attack (myocardial infarction) in the United States?  
+Outcome: `heart_attack`  
+Comparison Group: `diabetes`
+
+
 The predictor used for estimating propensity score: 
-| Predictor      | Description                                         |
-| -------------- | ----------------------------------------------------|
-| `heart_attack` | Relatives have heart attack or not                  |
-| `gender`       | Gender of the participant                           |
-| `age`          | Age of the participant                              |
-| `race`         | Race of the participant                             |
-| `edu`          | Education Level                                     | 
-| `annual_income`| Annual Income                                       | 
-| `bmi`          | Body Mass Index                                     |
-| `smoke_life`   | Smoked at least 100 cigarettes in life or not       |
-| `year_smoke`   | Year of smoke                                       |
-| `phy_vigorous` | Doing vigorous work activity or not                 | 
-| `phy_moderate` | Doing moderate work activity or not                 |
-| `blood_press`  | Being told high blood pressure                      | 
-| `blood_press2` | Being told high blood pressure 2+ more times or not |
-| `year_hyper`   | Year of hypertension                                | 
-| `hyper_med`    | Taking hypertension medicine or not                 |
-| `hbp_med`      | Taking HBP medicine or not                          | 
-| `high_chol`    | Being told high cholesterol level or not            |
+| Predictor               | Description                                         |
+| ----------------------- | ----------------------------------------------------|
+| `relative_heart_attack` | Relatives have heart attack or not                  |
+| `gender`                | Gender of the participant                           |
+| `age`                   | Age of the participant                              |
+| `race`                  | Race of the participant                             |
+| `edu`                   | Education Level                                     | 
+| `annual_income`         | Annual Income                                       | 
+| `bmi`                   | Body Mass Index                                     |
+| `smoke_life`            | Smoked at least 100 cigarettes in life or not       |
+| `year_smoke`            | Year of smoke                                       |
+| `phy_vigorous`          | Doing vigorous work activity or not                 | 
+| `phy_moderate`          | Doing moderate work activity or not                 |
+| `blood_press`           | Being told high blood pressure                      | 
+| `blood_press2`          | Being told high blood pressure 2+ more times or not |
+| `year_hyper`            | Year of hypertension                                | 
+| `hyper_med`             | Taking hypertension medicine or not                 |
+| `hbp_med`               | Taking HBP medicine or not                          | 
+| `high_chol`             | Being told high cholesterol level or not            |
 
 **Note:** For all the binary variable here with value 1 and 0, 1 = Yes and 0 = No
 
