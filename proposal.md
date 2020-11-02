@@ -29,7 +29,7 @@ Yawen Hu: R
     - `tidyverse`: data I/O and manipulation  
     - `GLM` and `MatchIt`: propensity score weight and match 
 
-### Procedure
+### Tutorial
 1. Estimate propensity score weights by fitting a logistic regression model using whether or not an adult patient has diabete as response and the relatively Confounders factors and demographic variable as predictor.
 2. Use Nearest-Neighborhood to match the diabete and non-diabete patients on the estimated propensity scores.
 3. Estimate the effect of diabete on heart attack using propensity score-matched sample.
