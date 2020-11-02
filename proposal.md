@@ -4,7 +4,9 @@
 Creating propensity score weights and using inverse propensity weights and/or matching for analysis.
 
 #### Concept
-1. Propensity score matching analysis
+1. Propensity score weight estimate
+2. Propensity score matching
+3. Inverse propensity weights
    
 #### Data
 [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) Data used in class
