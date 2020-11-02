@@ -39,9 +39,11 @@ The predictor used for estimating propensity score:
 
 ### Group Member and Software
 Hongfan Chen: SAS  
-- Key command: `proc psmatch` and `proc logistic`
+- Key command: `proc psmatch`, `proc logistic`
   
 Rithu Uppalapati: Stata  
+- Key command: `pscore`, `psmatch2`
+
 Zhihao Xu: Python
 - Core packages: 
     - `numpy` / `pandas`: data I/O and manipulation  
