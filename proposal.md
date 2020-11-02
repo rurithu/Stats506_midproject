@@ -31,6 +31,7 @@ The predictor used for estimating propensity score:
 | `hyper_med`    | Taking hypertension medicine or not                 |
 | `hbp_med`      | Taking HBP medicine or not                          | 
 | `high_chol`    | Being told high cholesterol level or not            |
+
 **Note:** For all the binary variable here with value 1 and 0, 1 = Yes and 0 = No
 
 
