@@ -42,7 +42,9 @@ Hongfan Chen: SAS
 - Key command: `proc psmatch`, `proc logistic`
   
 Rithu Uppalapati: Stata  
-- Key command: `pscore`, `psmatch2`
+- Key command: 
+    - `psmatch2` command by default reports the average treatment effect on the treated (which it refers to as ATT). 
+    - `teffects` command by default reports the average treatment effect (ATE) but will calculate the average treatment effect on the treated
 
 Zhihao Xu: Python
 - Core packages: 
