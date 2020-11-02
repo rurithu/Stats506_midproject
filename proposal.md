@@ -3,17 +3,18 @@
 ### Topic
 Creating propensity score weights and using inverse propensity weights and/or matching for analysis.
 
-### Data
+#### Concept
+1. Propensity score weights
+2. Propensity score matching
+   
+#### Data
 [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) Data used in class
 
-### Research Question (TBD)
+#### Research Question (TBD)
 Whether or not adult patients with diabetes have higher risk for heart attack (HA; myocardial infarction) in the United States.  
 Confounders: BMI, smoking, physical activity, access to medical services, hypertension/high blood pressure and diet.
 Demographic Variable: age, sex, race, education, marital status, income
 
-#### Concept
-1. Propensity score weights
-2. Propensity score matching
 
 ### Group Member and Software
 Hongfan Chen: SAS  
