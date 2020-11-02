@@ -11,8 +11,9 @@ Creating propensity score weights and using inverse propensity weights and/or ma
 [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) Data used in class
 
 #### Research Question
-Whether or not adult patients with diabetes have higher risk for heart attack (HA; myocardial infarction) in the United States.  
-The predictor used for estimating propensity score: whether relative has heart attack, gender, age, race, education level, annual income, BMI, whether smoke, year of smoke, whethe do vigorous work activity, whethe do moderate work activity, whether being told high blood pressure, whether being told high blood pressure 2+ more times, year of hypertension, whether take hypertension/HBP medicine, whether has high cholesterol level
+Whether or not adult patients with diabetes have higher risk for heart attack (myocardial infarction) in the United States.  
+The predictor used for estimating propensity score:  
+`heart_attack`(relatives have heart attack or not), `gender`, `age`, `race`, `edu`, `annual_income`, `bmi`, `smoke_life`, `year_smoke`(year of smoke), `phy_vigorous`(doing vigorous work activity or not), `phy_moderate`(doing moderate work activity or not), `blood_press`(being told high blood pressure), `blood_press2`(being told high blood pressure 2+ more times or not), `year_hyper`(year of hypertension), `hyper_med`, `hbp_med`(taking hypertension/HBP medicine or not), `high_chol`(being told high cholesterol level or not)
 
 
 ### Group Member and Software
