@@ -10,10 +10,9 @@ Creating propensity score weights and using inverse propensity weights and/or ma
 #### Data
 [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) Data used in class
 
-#### Research Question (TBD)
+#### Research Question
 Whether or not adult patients with diabetes have higher risk for heart attack (HA; myocardial infarction) in the United States.  
-Confounders: BMI, smoking, physical activity, access to medical services, hypertension/high blood pressure and diet.
-Demographic Variable: age, sex, race, education, marital status, income
+The predictor used for estimating propensity score: whether relative has heart attack, gender, age, race, education level, annual income, BMI, whether smoke, year of smoke, whethe do vigorous work activity, whethe do moderate work activity, whether being told high blood pressure, whether being told high blood pressure 2+ more times, year of hypertension, whether take hypertension/HBP medicine, whether has high cholesterol level
 
 
 ### Group Member and Software
