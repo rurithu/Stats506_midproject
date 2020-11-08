@@ -128,9 +128,10 @@ full_data = mcq %>%
   filter( age >= 20) %>%
   drop_na() %>%
   mutate(
-    age_smoke = pmax(age - age_smoke, 0),
-    age_hyper = pmax(age - age_hyper, 0)
-  )
+    year_smoke = pmax(age - age_smoke, 0),
+    year_hyper = pmax(age - age_hyper, 0)
+  ) %>%
+  select(- age_smoke, - age_hyper)
 
 full_data %>%
   write_delim("nhanes.csv", delim=",")
