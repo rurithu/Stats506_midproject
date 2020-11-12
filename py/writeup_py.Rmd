@@ -1,0 +1,161 @@
+---
+title: "writeup_py"
+author: "Xu Zhihao"
+date: "11/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, echo = TRUE)
+library(reticulate)
+library(tidyverse)
+use_python("/opt/anaconda3/bin/python")
+```
+
+
+```{python load_package, engine.path="/opt/anaconda3/bin/python"}
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from statsmodels.stats.weightstats import ttest_ind
+from matplotlib import pyplot as plt
+from scipy import stats
+```
+
+```{python read_data}
+nhanes = pd.read_csv('../data/nhanes.csv')
+nhanes_X = nhanes.drop(columns=['id', 'heart_attack','diabete','weight'])
+nhanes_diab = nhanes['diabete']
+weight = nhanes['weight']
+```
+
+
+#### Estimate the propensity score by fitting a logistic regression model
+```{python lg}
+lg = LogisticRegression(random_state=0, max_iter = 1000)
+lg.fit(nhanes_X, nhanes_diab, sample_weight = weight)
+prop_score = lg.predict_proba(nhanes_X)[:,1]
+```
+
+
+#### Propensity score matching by nearest neighbor
+```{python psmatch}
+dia_idx = np.where(nhanes['diabete'].values==1)
+non_dia_idx = np.where(nhanes['diabete'].values==0)
+prop_score_logit = np.log(prop_score / (1 - prop_score))
+std = np.std(prop_score_logit[dia_idx])
+result = [0]*len(prop_score_logit[dia_idx])
+for i in range(len(prop_score_logit[dia_idx])):
+    dif = prop_score_logit[dia_idx][i] - prop_score_logit[non_dia_idx]
+    dif[np.array(result)[np.array(result)!=0]] = 100
+    min_val = min(abs(dif))
+    if min_val > 0.2*std:
+        result[i] = 0
+    else:
+        result[i] = np.where(abs(dif)==min_val)[0][0]
+        
+result = np.array(result)
+dia_idx_matched = dia_idx[0][result!=0]
+result = result[result!=0]
+matched_idx = non_dia_idx[0][result]
+heart_matched = nhanes['heart_attack'].values[matched_idx]
+heart_non_dia = nhanes['heart_attack'].values[non_dia_idx]
+heart_dia_matched = nhanes['heart_attack'].values[dia_idx_matched]
+```
+
+
+```{r echo=FALSE}
+cap1 = "**Table 1:** Proportion of Heat Attack with Original Control Group"
+tab_not_match = py$nhanes %>%
+  select(heart_attack, diabete, weight) %>%
+  group_by(diabete, heart_attack) %>%
+  summarise(freq = sum(weight)) %>%
+  mutate(
+    prop = freq/sum(freq),
+    freq_p = paste0(sprintf("%9.0f", freq),"(",
+                    sprintf("%4.2f", prop),")")
+  )%>%
+  select(-freq,-prop)
+
+as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
+  bind_cols(tab_not_match[1:2,3]) %>%
+  bind_cols(tab_not_match[3:4,3]) %>%
+  knitr::kable(format = "html", align = "lrr", caption = cap1,
+               col.names = c("Heart Attack","Diabetes", "Non-diabates")) %>%
+  kableExtra::kable_styling('striped', full_width = TRUE)
+```
+
+
+```{r echo=FALSE}
+cap2 = "**Table 2:** Proportion of Heat Attack with Matched Control Group"
+tab_match = py$nhanes[c(py$dia_idx_matched+1,py$matched_idx+1),] %>%
+  select(heart_attack, diabete, weight) %>%
+  group_by(diabete, heart_attack) %>%
+  summarise(freq = sum(weight)) %>%
+  mutate(
+    prop = freq/sum(freq),
+    freq_p = paste0(sprintf("%9.0f", freq),"(",
+                    sprintf("%4.2f", prop),")")
+  )%>%
+  select(-freq,-prop)
+as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
+  bind_cols(tab_match[1:2,3]) %>%
+  bind_cols(tab_match[3:4,3]) %>%
+  knitr::kable(format = "html", align = "lrr", caption = cap2,
+               col.names = c("Heart Attack","Diabetes", "Non-diabates")) %>%
+  kableExtra::kable_styling('striped', full_width = TRUE)
+```
+
+
+
+
+```{python}
+ttest_match = ttest_ind(heart_dia_matched, heart_matched, usevar='unequal', 
+                        weights=(weight[dia_idx_matched], weight[matched_idx]))
+```
+
+
+```{r echo=FALSE}
+cap3 = "**Table 3:** Result of T-test"
+as_tibble_row(c(tstat = py$ttest_match[[1]], 
+                pvalue = py$ttest_match[[2]], 
+                df = py$ttest_match[[3]] )) %>%
+  knitr::kable(format = "html", align = "rr", caption = cap3,
+               col.names = c("T Statistic", "p-value", "degree of freedom")) %>%
+  kableExtra::kable_styling('striped', full_width = TRUE)
+```
+
+
+#### Estimate the weights
+```{python}
+ps_weight = nhanes['diabete']/prop_score + (1 - nhanes['diabete'])/(1 - prop_score)
+```
+
+
+```{r echo=FALSE}
+cap4 = paste0("**Table 4:** Proportion of Heat Attack with ", 
+              "Inverse Propensity Score Weighting")
+tab_weight = py$nhanes %>%
+  select(heart_attack, diabete, weight) %>%
+  bind_cols(ps_weight = py$ps_weight) %>%
+  group_by(diabete, heart_attack) %>%
+  summarise(freq = sum(weight*ps_weight)) %>%
+  mutate(
+    prop = freq/sum(freq),
+    freq_p = paste0(sprintf("%9.0f", freq),"(",
+                    sprintf("%4.2f", prop),")")
+  )%>%
+  select(-freq,-prop)
+as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
+  bind_cols(tab_weight[1:2,3]) %>%
+  bind_cols(tab_weight[3:4,3]) %>%
+  knitr::kable(format = "html", align = "lrr", caption = cap4,
+               col.names = c("Heart Attack","Diabetes", "Non-diabates")) %>%
+  kableExtra::kable_styling('striped', full_width = TRUE)
+```
+
+
+
+
+
+
