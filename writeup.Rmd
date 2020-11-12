@@ -1,0 +1,244 @@
+---
+title: "Stats 506, F20, Midterm Project Group 1"
+author:
+  - Hongfan Chen, chenhf@umich.edu
+  - Rithu Uppalapati, rurithu@umich.edu
+  - Zhihao Xu, xuzhihao@umich.edu
+  - Yawen Hu, yawenhu@umich.edu
+date: "`r format.Date(Sys.Date(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, echo = TRUE)
+library(reticulate)
+library(tidyverse)
+use_python("/opt/anaconda3/bin/python")
+```
+
+## About
+
+### Research Question
+A propensity score is the **conditional probability** that a subject receives "treatment" given the subject’s observed covariates. When estimating treatment effects on a binary outcome, it may happen that the treatments are not randomly assigned to subjects, which is somewhat often the case in observational studies. Propensity scoring aims to mimic what happens in randomized controlled trials by balancing observed covariates between subjects in control and treatment groups.
+
+The purpose of this tutorial is to introduce how to perform propensity score analyses. In the following sections we will use the data from the National Health and Nutrition Examination Survey ([NHANES](https://www.cdc.gov/nchs/nhanes/index.htm)). We will use the propensity score as a tool to figure out the following question:
+
+> Whether or not adult patients with diabetes have higher risk for heart attack (myocardial infarction) in the United States?
+
+Here’s are the main reasons why we choose this method: 
+
+- This dataset is based on observational data but not experimental and thus has selection bias.
+- There are many confounding variables, such as age, body mass index (BMI), year of smoking etc. Also, among other variables, like race or income that seem to be irrelevant with this question may also have the potential to impact our outcome and be confounding variables.
+
+
+### Data Description
+
+From the [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) dataset, we choose the following variable as the predictors, outcome and treatment.
+
+Outcome: `heart_attack`  
+Treatment: `diabetes`
+
+Predictors: 
+
+|  Variable               | Description                                         |
+| ----------------------- | ----------------------------------------------------|
+| `relative_heart_attack` | Relatives have heart attack or not                  |
+| `gender`                | Gender of the participant                           |
+| `age`                   | Age of the participant                              |
+| `race`                  | Race of the participant                             |
+| `edu`                   | Education Level                                     | 
+| `annual_income`         | Annual Income                                       | 
+| `bmi`                   | Body Mass Index                                     |
+| `smoke_life`            | Smoked at least 100 cigarettes in life or not       |
+| `year_smoke`            | Year of smoke                                       |
+| `phy_vigorous`          | Doing vigorous work activity or not                 | 
+| `phy_moderate`          | Doing moderate work activity or not                 |
+| `blood_press`           | Being told high blood pressure                      | 
+| `blood_press2`          | Being told high blood pressure 2+ more times or not |
+| `year_hyper`            | Year of hypertension                                | 
+| `hyper_med`             | Taking hypertension medicine or not                 |
+| `hbp_med`               | Taking HBP medicine or not                          | 
+| `high_chol`             | Being told high cholesterol level or not            |
+| `meadial_access`        | Being able to have medical access or nor            |
+| `cover_hc`              | Covered by health care or not                       |
+| `health_diet`           | Having a health diet or not                         |
+
+**Note:** For all the binary variable here with value 1 and 0, 1 = Yes and 0 = No
+
+
+## Tutorial Procedure
+### Create Propensity Score
+Just the same as doing a randomized controlled trial, we would want our treatment and control groups to have variables which have similar point estimates, such as roughly same mean age or mean BMI. Then Logistic Regression can be introduced to develop propensity scores, since it can represent the conditional probability that a patient receives the treatment given the observed covariates.
+
+$$
+p(x) = P(T=1|X_1, X_2, \ldots, X_n)
+$$
+Therefore, we create a logistic model in which we take treatment, namely diabetes, as our response, and the other variables (except heart_attack and weights) as our predictors. Then each observation is assigned with a probability on which we can perform our matching.  
+
+Note that we are not overly focusing on how well our model predicts whether a patient receives treatment or not. Here, what is more important is that we include all predictor variables in the model that are correlated or may be correlated with our outcome. So based on this we can do our best to eliminate the bias caused by the pre-treatment characteristics of the dataset.
+
+### Propensity Score Matching
+
+Here we use the propensity score to create 1-1 mapping between treatment and control groups. We also identify a caliper, which is a defined width based on a proportion of the standard deviation of the logit of the propensity score. Each observation from the treatment group is matched to the nearest observation in the control group that has not yet been matched by propensity score. The observations must have propensity scores that are within the caliper distance of each other. Here we choose 0.2*standard deviation as caliper distance.
+
+### Compare the Matched Control Group with the Original Control Group
+
+Here we first compute the frequency table and the proportion of having heart attack for both the matched control group and the original control group. We can further use T-test to figure out whether the difference between the control group and the treatment group is statistically significant or not.
+
+### Create Inverse Propensity Weight
+
+In propensity score matching, a large proportion of observations are not counted in the final frequency table because they are not matched. And this is due to a difference in the number of treatment groups and control groups. Using inverse propensity score weight, we can keep all this information by assigning different weight to different observations. Here we use to Average Treatment Effect (ATE) as our propensity weight, which is generally the quantity estimated when running a randomized study, and can be computed by
+$$
+w_{ATE}(x) = \frac{T}{p(x)} + \frac{1 - T}{1 - p(x)}
+$$
+
+
+## Software Tutorial
+## {.tabset .tabset-pills .tabset-fade}
+### Python 
+```{python load_package, engine.path="/opt/anaconda3/bin/python"}
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from statsmodels.stats.weightstats import ttest_ind
+from matplotlib import pyplot as plt
+from scipy import stats
+```
+
+```{python read_data}
+nhanes = pd.read_csv('./data/nhanes.csv')
+nhanes_X = nhanes.drop(columns=['id', 'heart_attack','diabete','weight'])
+nhanes_diab = nhanes['diabete']
+weight = nhanes['weight']
+```
+
+
+#### Estimate the propensity score by fitting a logistic regression model
+```{python lg}
+lg = LogisticRegression(random_state=0, max_iter = 1000)
+lg.fit(nhanes_X, nhanes_diab, sample_weight = weight)
+prop_score = lg.predict_proba(nhanes_X)[:,1]
+```
+
+
+#### Propensity score matching by nearest neighbor
+```{python psmatch}
+dia_idx = np.where(nhanes['diabete'].values==1)
+non_dia_idx = np.where(nhanes['diabete'].values==0)
+prop_score_logit = np.log(prop_score / (1 - prop_score))
+std = np.std(prop_score_logit[dia_idx])
+result = [0]*len(prop_score_logit[dia_idx])
+for i in range(len(prop_score_logit[dia_idx])):
+    dif = prop_score_logit[dia_idx][i] - prop_score_logit[non_dia_idx]
+    dif[np.array(result)[np.array(result)!=0]] = 100
+    min_val = min(abs(dif))
+    if min_val > 0.2*std:
+        result[i] = 0
+    else:
+        result[i] = np.where(abs(dif)==min_val)[0][0]
+        
+result = np.array(result)
+dia_idx_matched = dia_idx[0][result!=0]
+result = result[result!=0]
+matched_idx = non_dia_idx[0][result]
+heart_matched = nhanes['heart_attack'].values[matched_idx]
+heart_non_dia = nhanes['heart_attack'].values[non_dia_idx]
+heart_dia_matched = nhanes['heart_attack'].values[dia_idx_matched]
+```
+
+
+```{r echo=FALSE}
+cap1 = "**Table 1:** Proportion of Heat Attack with Original Control Group"
+tab_not_match = py$nhanes %>%
+  select(heart_attack, diabete, weight) %>%
+  group_by(diabete, heart_attack) %>%
+  summarise(freq = sum(weight)) %>%
+  mutate(
+    prop = freq/sum(freq),
+    freq_p = paste0(sprintf("%9.0f", freq),"(",
+                    sprintf("%4.2f", prop),")")
+  )%>%
+  select(-freq,-prop)
+
+as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
+  bind_cols(tab_not_match[1:2,3]) %>%
+  bind_cols(tab_not_match[3:4,3]) %>%
+  knitr::kable(format = "html", align = "lrr", caption = cap1,
+               col.names = c("Heart Attack","Diabetes", "Non-diabates")) %>%
+  kableExtra::kable_styling('striped', full_width = TRUE)
+```
+
+
+```{r echo=FALSE}
+cap2 = "**Table 2:** Proportion of Heat Attack with Matched Control Group"
+tab_match = py$nhanes[c(py$dia_idx_matched+1,py$matched_idx+1),] %>%
+  select(heart_attack, diabete, weight) %>%
+  group_by(diabete, heart_attack) %>%
+  summarise(freq = sum(weight)) %>%
+  mutate(
+    prop = freq/sum(freq),
+    freq_p = paste0(sprintf("%9.0f", freq),"(",
+                    sprintf("%4.2f", prop),")")
+  )%>%
+  select(-freq,-prop)
+as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
+  bind_cols(tab_match[1:2,3]) %>%
+  bind_cols(tab_match[3:4,3]) %>%
+  knitr::kable(format = "html", align = "lrr", caption = cap2,
+               col.names = c("Heart Attack","Diabetes", "Non-diabates")) %>%
+  kableExtra::kable_styling('striped', full_width = TRUE)
+```
+
+
+
+
+```{python}
+ttest_match = ttest_ind(heart_dia_matched, heart_matched, usevar='unequal', 
+                        weights=(weight[dia_idx_matched], weight[matched_idx]))
+```
+
+
+```{r echo=FALSE}
+cap3 = "**Table 3:** Result of T-test"
+as_tibble_row(c(tstat = py$ttest_match[[1]], 
+                pvalue = py$ttest_match[[2]], 
+                df = py$ttest_match[[3]] )) %>%
+  knitr::kable(format = "html", align = "rr", caption = cap3,
+               col.names = c("T Statistic", "p-value", "degree of freedom")) %>%
+  kableExtra::kable_styling('striped', full_width = TRUE)
+```
+
+
+#### Estimate the weights
+```{python}
+ps_weight = nhanes['diabete']/prop_score + (1 - nhanes['diabete'])/(1 - prop_score)
+```
+
+
+```{r echo=FALSE}
+cap4 = paste0("**Table 4:** Proportion of Heat Attack with ", 
+              "Inverse Propensity Score Weighting")
+tab_weight = py$nhanes %>%
+  select(heart_attack, diabete, weight) %>%
+  bind_cols(ps_weight = py$ps_weight) %>%
+  group_by(diabete, heart_attack) %>%
+  summarise(freq = sum(weight*ps_weight)) %>%
+  mutate(
+    prop = freq/sum(freq),
+    freq_p = paste0(sprintf("%9.0f", freq),"(",
+                    sprintf("%4.2f", prop),")")
+  )%>%
+  select(-freq,-prop)
+as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
+  bind_cols(tab_weight[1:2,3]) %>%
+  bind_cols(tab_weight[3:4,3]) %>%
+  knitr::kable(format = "html", align = "lrr", caption = cap4,
+               col.names = c("Heart Attack","Diabetes", "Non-diabates")) %>%
+  kableExtra::kable_styling('striped', full_width = TRUE)
+```
+
+
+
+
+
+
