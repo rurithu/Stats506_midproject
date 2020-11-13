@@ -1080,7 +1080,7 @@ summary {
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1">beforematch =<span class="st"> </span><span class="kw">read_delim</span>(<span class="st">&quot;./output/freq_table.csv&quot;</span>, <span class="dt">delim =</span> <span class="st">&#39;,&#39;</span>)</a>
 <a class="sourceLine" id="cb4-2" title="2">aftermatch =<span class="st"> </span><span class="kw">read_delim</span>(<span class="st">&quot;./output/freq_table_merge.csv&quot;</span>, <span class="dt">delim =</span> <span class="st">&#39;,&#39;</span>)</a>
 <a class="sourceLine" id="cb4-3" title="3">inverseweight =<span class="st"> </span><span class="kw">read_delim</span>(<span class="st">&quot;./output/ps_match_inverse_table.csv&quot;</span>, <span class="dt">delim =</span> <span class="st">&#39;,&#39;</span>)</a>
-<a class="sourceLine" id="cb4-4" title="4">tab =<span class="st"> </span><span class="cf">function</span>(df, <span class="dt">header =</span> <span class="kw">c</span>(<span class="st">&quot;Proportion&quot;</span> =<span class="st"> </span><span class="dv">3</span>)){</a>
+<a class="sourceLine" id="cb4-4" title="4">tab =<span class="st"> </span><span class="cf">function</span>(df, <span class="dt">header =</span> <span class="kw">c</span>(<span class="st">&quot;Proportion&quot;</span> =<span class="st"> </span><span class="dv">3</span>), <span class="dt">cap =</span> <span class="st">&quot;hello&quot;</span>){</a>
 <a class="sourceLine" id="cb4-5" title="5">  df <span class="op">%&gt;%</span></a>
 <a class="sourceLine" id="cb4-6" title="6"><span class="st">  </span><span class="kw">mutate</span>(</a>
 <a class="sourceLine" id="cb4-7" title="7">    <span class="st">`</span><span class="dt">Heart Attack</span><span class="st">`</span> =<span class="st"> </span><span class="kw">ifelse</span>(heart_attack <span class="op">==</span><span class="st"> </span><span class="dv">1</span>, <span class="st">&quot;YES&quot;</span>, <span class="st">&quot;NO&quot;</span>),</a>
@@ -1093,14 +1093,23 @@ summary {
 <a class="sourceLine" id="cb4-14" title="14"><span class="st">  </span><span class="kw">pivot_wider</span>(<span class="dt">id_cols =</span> <span class="st">`</span><span class="dt">Heart Attack</span><span class="st">`</span>,</a>
 <a class="sourceLine" id="cb4-15" title="15">               <span class="dt">names_from =</span> <span class="st">&#39;diabetes&#39;</span>, </a>
 <a class="sourceLine" id="cb4-16" title="16">               <span class="dt">values_from =</span> <span class="st">&#39;COUNT_PCT&#39;</span>) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb4-17" title="17"><span class="st">  </span>knitr<span class="op">::</span><span class="kw">kable</span>(<span class="dt">format =</span> <span class="st">&#39;html&#39;</span>) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb4-17" title="17"><span class="st">  </span>knitr<span class="op">::</span><span class="kw">kable</span>(<span class="dt">format =</span> <span class="st">&#39;html&#39;</span>, <span class="dt">caption =</span> cap) <span class="op">%&gt;%</span></a>
 <a class="sourceLine" id="cb4-18" title="18"><span class="st">  </span>kableExtra<span class="op">::</span><span class="kw">kable_styling</span>(<span class="st">&quot;striped&quot;</span>, <span class="dt">full_width =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span></a>
 <a class="sourceLine" id="cb4-19" title="19"><span class="st">  </span>kableExtra<span class="op">::</span><span class="kw">add_header_above</span>(header)</a>
 <a class="sourceLine" id="cb4-20" title="20">}</a></code></pre></div>
-<div id="table-aefore-match" class="section level3">
-<h3>Table Aefore Match</h3>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">tab</span>(beforematch, <span class="dt">header =</span> <span class="kw">c</span>(<span class="st">&quot;Proportion of Heat Attack with Pre-matched Group&quot;</span> =<span class="st"> </span><span class="dv">3</span>))</a></code></pre></div>
+<div id="before-match" class="section level4">
+<h4>Before Match</h4>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">cap =<span class="st"> </span><span class="kw">paste0</span>(</a>
+<a class="sourceLine" id="cb5-2" title="2"><span class="st">&quot;**Table 1.** Proportion of Heat Attack with Pre-matched Group&quot;</span></a>
+<a class="sourceLine" id="cb5-3" title="3">)</a>
+<a class="sourceLine" id="cb5-4" title="4"><span class="kw">tab</span>(beforematch,</a>
+<a class="sourceLine" id="cb5-5" title="5">    <span class="dt">header =</span> <span class="kw">c</span>(<span class="st">&quot;Proportion of Heat Attack with Pre-matched Group&quot;</span> =<span class="st"> </span><span class="dv">3</span>),</a>
+<a class="sourceLine" id="cb5-6" title="6">    <span class="dt">cap =</span> cap</a>
+<a class="sourceLine" id="cb5-7" title="7">    )</a></code></pre></div>
 <table class="table table-striped" style="margin-left: auto; margin-right: auto;">
+<caption>
+<strong>Table 1.</strong> Proportion of Heat Attack with Pre-matched Group
+</caption>
 <thead>
 <tr>
 <th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="3">
@@ -1146,14 +1155,20 @@ YES
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1">cap =<span class="st"> </span><span class="kw">paste0</span>(</a>
-<a class="sourceLine" id="cb6-2" title="2"><span class="st">&quot;**Table 1.** *Proportion of Heat Attack with Pre-matched Group&quot;</span></a>
-<a class="sourceLine" id="cb6-3" title="3">)</a></code></pre></div>
 </div>
-<div id="table-after-match" class="section level3">
-<h3>Table After Match</h3>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">tab</span>(aftermatch, <span class="dt">header =</span> <span class="kw">c</span>(<span class="st">&quot;Proportion of Heat Attack with Matched Group&quot;</span> =<span class="st"> </span><span class="dv">3</span>))</a></code></pre></div>
+<div id="after-match" class="section level4">
+<h4>After Match</h4>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1">cap =<span class="st"> </span><span class="kw">paste0</span>(</a>
+<a class="sourceLine" id="cb6-2" title="2"><span class="st">&quot;**Table 2.** Proportion of Heat Attack with Matched Group&quot;</span></a>
+<a class="sourceLine" id="cb6-3" title="3">)</a>
+<a class="sourceLine" id="cb6-4" title="4"><span class="kw">tab</span>(aftermatch,</a>
+<a class="sourceLine" id="cb6-5" title="5">    <span class="dt">header =</span> <span class="kw">c</span>(<span class="st">&quot;Proportion of Heat Attack with Matched Group&quot;</span> =<span class="st"> </span><span class="dv">3</span>),</a>
+<a class="sourceLine" id="cb6-6" title="6">    <span class="dt">cap =</span> cap</a>
+<a class="sourceLine" id="cb6-7" title="7">    )</a></code></pre></div>
 <table class="table table-striped" style="margin-left: auto; margin-right: auto;">
+<caption>
+<strong>Table 2.</strong> Proportion of Heat Attack with Matched Group
+</caption>
 <thead>
 <tr>
 <th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="3">
@@ -1199,14 +1214,20 @@ YES
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" title="1">cap =<span class="st"> </span><span class="kw">paste0</span>(</a>
-<a class="sourceLine" id="cb8-2" title="2"><span class="st">&quot;**Table 2.** *Proportion of Heat Attack with Matched Group&quot;</span></a>
-<a class="sourceLine" id="cb8-3" title="3">)</a></code></pre></div>
 </div>
-<div id="table-using-iverse-propensity-weight" class="section level3">
-<h3>Table Using Iverse Propensity Weight</h3>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1"><span class="kw">tab</span>(inverseweight, <span class="dt">header =</span> <span class="kw">c</span>(<span class="st">&quot;Proportion of Heat Attack with Inverse Propensity Weight &quot;</span> =<span class="st"> </span><span class="dv">3</span>))</a></code></pre></div>
+<div id="using-iverse-propensity-weight" class="section level4">
+<h4>Using Iverse Propensity Weight</h4>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">cap =<span class="st"> </span><span class="kw">paste0</span>(</a>
+<a class="sourceLine" id="cb7-2" title="2"><span class="st">&quot;**Table 3.** Proportion of Heat Attack with Inverse Propensity Weight&quot;</span></a>
+<a class="sourceLine" id="cb7-3" title="3">)</a>
+<a class="sourceLine" id="cb7-4" title="4"><span class="kw">tab</span>(inverseweight, </a>
+<a class="sourceLine" id="cb7-5" title="5">    <span class="dt">header =</span> <span class="kw">c</span>(<span class="st">&quot;Proportion of Heat Attack with Inverse Propensity Weight &quot;</span> =<span class="st"> </span><span class="dv">3</span>), </a>
+<a class="sourceLine" id="cb7-6" title="6">    <span class="dt">cap =</span> cap</a>
+<a class="sourceLine" id="cb7-7" title="7">    )</a></code></pre></div>
 <table class="table table-striped" style="margin-left: auto; margin-right: auto;">
+<caption>
+<strong>Table 3.</strong> Proportion of Heat Attack with Inverse Propensity Weight
+</caption>
 <thead>
 <tr>
 <th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="3">
@@ -1252,9 +1273,6 @@ YES
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1">cap =<span class="st"> </span><span class="kw">paste0</span>(</a>
-<a class="sourceLine" id="cb10-2" title="2"><span class="st">&quot;**Table 3.** *Proportion of Heat Attack with Inverse Propensity Weight&quot;</span></a>
-<a class="sourceLine" id="cb10-3" title="3">)</a></code></pre></div>
 </div>
 </div>
 
