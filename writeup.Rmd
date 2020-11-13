@@ -13,6 +13,7 @@ output: html_document
 knitr::opts_chunk$set(message = FALSE, echo = TRUE)
 library(reticulate)
 library(tidyverse)
+library(Statamarkdown)
 use_python("/opt/anaconda3/bin/python")
 ```
 
@@ -501,3 +502,74 @@ tab(inverseweight,
     cap = cap
     )
 ```
+
+
+### STATA
+```{stata s1, collectcode=TRUE}
+import delimited "./data/nhanes.csv", encoding(ISO-8859-1)
+```
+#### Initial Data Balance:
+This will allow us to determine, which covariates will be useful when calculating the propensity score. 
+* To-Do 
+  + Create Confidence Intervals for all of the variables in order to know which to choose in our final model
+  + create a standardized balance table and compare the means 
+```{stata s2, collectcode=TRUE}
+logit heart_attack relative_heart_attack gender age race edu annual_income weight bmi diabete smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper
+ 
+ttest diabete, by(heart_attack)
+```
+
+#### I. Propensity score estimation:
+
+```{stata s3, collectcode=TRUE, results="hide"}
+pscore diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, pscore(pc_pscore) blockid(pc_block) detail
+psgraph, treated(diabete)pscore(pc_pscore)
+```
+
+#### II. Propensity score matching/weighting:
+* To-Do
+  + create graphics 
+  + for matching, I will create a line graph and juxtapose the untreated vs. treated 
+  + for weighting, I will create two density graphs to compare 
+
+##### Matching 
+
+```{stata s4, collectcode=TRUE}
+qui psmatch2 diabete, kernel outcome(heart_attack) pscore(pc_pscore)
+```
+
+##### Inverse Propensity Score Weighting 
+```{stata s5, collectcode=TRUE}
+qui dr heart_attack diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, genvars
+egen sumofweights = total(iptwt)
+gen norm_weights = iptwt/sumofweights
+```
+
+#### III. Balance Checking:
+* To-Do 
+  + I will also a linear regression estimation using the teffects ra function 
+  
+#### Matched Data Balance 
+```{stata s6, collectcode=TRUE}
+psmatch2 diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, out(heart_attack)
+ 
+reg heart_attack relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper diabete [fweight = _weight]
+ 
+teffects ipw (heart_attack) (diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper)
+```
+
+#### Inverse Weighting Balance
+
+```{stata s7, collectcode=TRUE}
+pbalchk diabete heart_attack diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, wt(norm_weights)
+ 
+teffects ipwra (heart_attack relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper) (diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper)
+```
+
+#### IV. Comparison between pre_match data and matched data.
+* To-Do  
+  + Create Graphs comparing pre-match data and match data 
+  + Create graphs comparing pre-weighted data to weighted data 
+  + standardized tables for both matched and weighted data to compare to initial data set
+
+
