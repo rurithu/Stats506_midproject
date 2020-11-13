@@ -432,7 +432,7 @@ invert
 
 
 
-### SAS script
+### SAS
 
 <details>
  <summary> `GroupProject_SAS_Hongfan.sas` </summary>
@@ -447,7 +447,7 @@ readLines("./SAS/GroupProject_SAS_Hongfan.sas")
 beforematch = read_delim("./SAS/output/freq_table.csv", delim = ',')
 aftermatch = read_delim("./SAS/output/freq_table_merge.csv", delim = ',')
 inverseweight = read_delim("./SAS/output/ps_match_inverse_table.csv", delim = ',')
-tab = function(df, header = c("Proportion" = 3)){
+tab = function(df, header = c("Proportion" = 3), cap = "hello"){
   df %>%
   mutate(
     `Heart Attack` = ifelse(heart_attack == 1, "YES", "NO"),
@@ -460,38 +460,44 @@ tab = function(df, header = c("Proportion" = 3)){
   pivot_wider(id_cols = `Heart Attack`,
                names_from = 'diabetes', 
                values_from = 'COUNT_PCT') %>%
-  knitr::kable(format = 'html') %>%
+  knitr::kable(format = 'html', caption = cap) %>%
   kableExtra::kable_styling("striped", full_width = TRUE) %>%
   kableExtra::add_header_above(header)
 }
 ```
 
-#### Table Aefore Match
+#### Before Match
 
-```{r table_1_sas, fig.cap = cap}
-tab(beforematch, header = c("Proportion of Heat Attack with Pre-matched Group" = 3))
+```{r table_1_sas}
 cap = paste0(
-"**Table 1.** *Proportion of Heat Attack with Pre-matched Group"
+"**Table 1.** Proportion of Heat Attack with Pre-matched Group"
 )
+tab(beforematch,
+    header = c("Proportion of Heat Attack with Pre-matched Group" = 3),
+    cap = cap
+    )
 ```
 
-#### Table After Match
+#### After Match
 
-```{r table_2_sas, fig.cap = cap}
-tab(aftermatch, header = c("Proportion of Heat Attack with Matched Group" = 3))
+```{r table_2_sas}
 cap = paste0(
-"**Table 2.** *Proportion of Heat Attack with Matched Group"
+"**Table 2.** Proportion of Heat Attack with Matched Group"
 )
+tab(aftermatch,
+    header = c("Proportion of Heat Attack with Matched Group" = 3),
+    cap = cap
+    )
 ```
 
-#### Table Using Iverse Propensity Weight
+#### Using Iverse Propensity Weight
 
-```{r table_3_sas, fig.cap = cap}
-tab(inverseweight, header = c("Proportion of Heat Attack with Inverse Propensity Weight " = 3))
+```{r table_3_sas}
 cap = paste0(
-"**Table 3.** *Proportion of Heat Attack with Inverse Propensity Weight"
+"**Table 3.** Proportion of Heat Attack with Inverse Propensity Weight"
 )
+tab(inverseweight, 
+    header = c("Proportion of Heat Attack with Inverse Propensity Weight " = 3), 
+    cap = cap
+    )
 ```
-
-
-
