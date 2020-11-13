@@ -20,19 +20,19 @@ Whether or not adult patients with diabetes have higher risk for heart attack (m
 - `py/`:  
   - `prop_py.ipynb`: the main python code for tutorial
   - `writeup_py.Rmd` / `writeup_py.html`: the write-up for the python tutorial
-  - The code in this folder is mainly done by Zhihao Xu
+  - The codes in this folder are mainly done by Zhihao Xu
 - `R/`:  
   - `midterm_project.R`: the main R code for tutorial
   - `writeup_R.Rmd` / `writeup_R.html`: the write-up for the R tutorial
-  - The code in this folder is mainly done by Yawen Hu
+  - The codes in this folder are mainly done by Yawen Hu
 - `SAS/`:  
   - `GroupProject_SAS_Hongfan.sas`: the main SAS code for tutorial
   - `GroupProject_SAS_Hongfan.Rmd` / `GroupProject_SAS_Hongfan.html`: the write-up for SAS tutorial
-  - The code in this folder is mainly done by Hongfan Chen
+  - The codes in this folder are mainly done by Hongfan Chen
 - `STATA/`:  
   - `Group_proj_Rithu.do`: the main Stata code for tutorial
   - `rithu_stata.Rmd` / `rithu_stata.html`: the write-up for STATA tutorial
-  - The code in this folder is mainly done by Rithu Uppalapati
+  - The codes in this folder are mainly done by Rithu Uppalapati
 
 ### Data Description
 [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) Data used in class
