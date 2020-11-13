@@ -13,25 +13,26 @@ Whether or not adult patients with diabetes have higher risk for heart attack (m
 
 ### Code Organization
 - `writeup.Rmd` / `writeup.html`: the write-up for this project
-- `data/`: Zhihao Xu
+- `data/`:  
   - `*.XPT`: the sub-dataset we used in [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) 
   - `data_preprocess.R`: the code for data preparation and the result is stored in `nhanes.csv`
   - `nhanes.csv`: the dataset we used in the later tutorial 
-- `py/`: Zhihao Xu
+- `py/`:  
   - `prop_py.ipynb`: the main python code for tutorial
   - `writeup_py.Rmd` / `writeup_py.html`: the write-up for the python tutorial
-- `R/`: Yawen Hu
+  - The code in this folder is mainly done by Zhihao Xu
+- `R/`:  
   - `midterm_project.R`: the main R code for tutorial
   - `writeup_R.Rmd` / `writeup_R.html`: the write-up for the R tutorial
-- `SAS/`: Hongfan Chen
+  - The code in this folder is mainly done by Yawen Hu
+- `SAS/`:  
   - `GroupProject_SAS_Hongfan.sas`: the main SAS code for tutorial
   - `GroupProject_SAS_Hongfan.Rmd` / `GroupProject_SAS_Hongfan.html`: the write-up for SAS tutorial
-- `STATA/`: Rithu Uppalapati
+  - The code in this folder is mainly done by Hongfan Chen
+- `STATA/`:  
   - `Group_proj_Rithu.do`: the main Stata code for tutorial
   - `rithu_stata.Rmd` / `rithu_stata.html`: the write-up for STATA tutorial
-
-
-
+  - The code in this folder is mainly done by Rithu Uppalapati
 
 ### Data Description
 [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) Data used in class
