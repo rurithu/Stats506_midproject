@@ -34,6 +34,29 @@ Whether or not adult patients with diabetes have higher risk for heart attack (m
   - `rithu_stata.Rmd` / `rithu_stata.html`: the write-up for STATA tutorial
   - The codes in this folder are mainly done by Rithu Uppalapati
 
+
+### TODO LIST
+- Python
+  + Write detail instruction about the core package used
+  + Add balance checking before and after matching
+  + Waiting for peer reviews
+- R
+  + Detailed tutorial on core packages 
+  + T-test
+- STATA
+  + Create Confidence Intervals for all of the variables in order to know which to choose in our final model
+  + Create a standardized balance table and compare the means 
+  + Create graphics 
+  + For matching, I will create a line graph and juxtapose the untreated vs. treated 
+  + For weighting, I will create two density graphs to compare 
+  + I will also a linear regression estimation using the teffects ra function
+  + Create Graphs comparing pre-match data and match data 
+  + Create graphs comparing pre-weighted data to weighted data 
+  + standardized tables for both matched and weighted data to compare to initial data set
+
+
+
+
 ### Data Description
 [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) Data used in class
 
@@ -64,3 +87,6 @@ Predictors:
 | `health_diet`           | Having a health diet or not                         |
 
 **Note:** For all the binary variable here with value 1 and 0, 1 = Yes and 0 = No
+
+
+
