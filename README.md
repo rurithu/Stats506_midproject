@@ -4,7 +4,7 @@
 Creating propensity score weights and using inverse propensity weights and/or matching for analysis.
 
 #### Concept
-1. Propensity score weight estimate
+1. Propensity score estimation
 2. Propensity score matching
 3. Inverse propensity weights
 
@@ -20,15 +20,15 @@ Whether or not adult patients with diabetes have higher risk for heart attack (m
 - `py/`:
   - `prop_py.ipynb`: the main python code for tutorial
   - `writeup_py.Rmd` / `writeup_py.html`: the write-up for the python tutorial
+- `R/`:
+  - `midterm_project.R`: the main R code for tutorial
+  - `writeup_R.Rmd` / `writeup_R.html`: the write-up for the R tutorial
 - `SAS/`:
   - `GroupProject_SAS_Hongfan.sas`: the main SAS code for tutorial
   - `GroupProject_SAS_Hongfan.Rmd` / `GroupProject_SAS_Hongfan.html`: the write-up for SAS tutorial
-
-
-Hongfan Chen: SAS  
-Rithu Uppalapati: Stata  
-Zhihao Xu: Python  
-Yawen Hu: R
+- `STATA/`:
+  - `Group_proj_Rithu.do`: the main Stata code for tutorial
+  - `rithu_stata.Rmd` / `rithu_stata.html`: the write-up for STATA tutorial
 
 
 
