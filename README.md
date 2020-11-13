@@ -39,10 +39,12 @@ Whether or not adult patients with diabetes have higher risk for heart attack (m
 - Python
   + Write detail instruction about the core package used
   + Add balance checking before and after matching
-  + Waiting for peer reviews
 - R
   + Detailed tutorial on core packages 
   + T-test
+- SAS
+  + Create Graphs to compare data 
+  + Add balance check
 - STATA
   + Create Confidence Intervals for all of the variables in order to know which to choose in our final model
   + Create a standardized balance table and compare the means 
