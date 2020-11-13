@@ -37,9 +37,9 @@ Here’s are the main reasons why we choose this method:
 From the [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) dataset, we choose the following variable as the predictors, outcome and treatment.
 
 Outcome: `heart_attack`  
-Treatment: `diabetes`
+Treatment: `diabetes`  
 
-Predictors: 
+Predictors:   
 
 |  Variable               | Description                                         |
 | ----------------------- | ----------------------------------------------------|
@@ -97,6 +97,10 @@ $$
 ## Software Tutorial
 ## {.tabset .tabset-pills .tabset-fade}
 ### Python 
+
+* To-Do 
+  + Balance checking before and after matching
+  
 ```{python load_package, engine.path="/opt/anaconda3/bin/python"}
 import numpy as np
 import pandas as pd

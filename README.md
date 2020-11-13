@@ -39,7 +39,7 @@ Whether or not adult patients with diabetes have higher risk for heart attack (m
 
 Outcome: `heart_attack`  
 Treatment: `diabetes`
-Predictors: 
+Predictors:   
 |  Variable               | Description                                         |
 | ----------------------- | ----------------------------------------------------|
 | `relative_heart_attack` | Relatives have heart attack or not                  |
