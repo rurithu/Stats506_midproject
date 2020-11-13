@@ -92,10 +92,10 @@ print(match_tab, smd = TRUE)
 ```
 
 ### IV. Comparison between pre_match data and matched data.
-##### **Table 1: **
 <details>
 <summary> Click to view `code for Table1`. </summary>
 ```{r tab1}
+cap2 = "**Table 1.** *Proportion of Heat Attack with Pre-matched Group*"
 tab_pre_mt = nhanes %>%
   group_by(diabete, heart_attack) %>%
   summarize(n = sum(weight), .groups = "drop_last") %>%
@@ -112,7 +112,7 @@ tab_pre_mt = nhanes %>%
     names_from = Diabetes,
     values_from = prop
   ) %>%
-  knitr::kable(format = 'html') %>%
+  knitr::kable(format = 'html', caption = cap2) %>%
   kableExtra::kable_styling("striped", full_width = TRUE) %>%
   kableExtra::add_header_above(
     header = c("Proportion of Heat Attack with Pre-matched Group" = 3)
@@ -123,10 +123,10 @@ tab_pre_mt = nhanes %>%
 ```{r table1, echo = FALSE}
 tab_pre_mt
 ```
-##### **Table 2: **
 <details>
 <summary> Click to view `code for Table2`. </summary>
 ```{r tab2}
+cap3 = "**Table 2.** *Proportion of Heat Attack with Matched Group*"
 tab_mt = ps_match %>%
   group_by(diabete, heart_attack) %>%
   summarize(n = sum(weight), .groups = "drop_last") %>%
@@ -143,7 +143,7 @@ tab_mt = ps_match %>%
     names_from = Diabetes,
     values_from = prop
   ) %>%
-  knitr::kable(format = 'html') %>%
+  knitr::kable(format = 'html', caption = cap3) %>%
   kableExtra::kable_styling("striped", full_width = TRUE) %>%
   kableExtra::add_header_above(
     header = c("Proportion of Heat Attack with Matched Group" = 3)
@@ -158,10 +158,10 @@ tab_mt
 
 
 ### V. Inverse propensity score weighting:
-##### **Table 3: **
 <details>
 <summary> Click to view `code for Table3`. </summary>
 ```{r ipw}
+cap4 = "**Table 3.** *Proportion of Heat Attack with Inverse Propensity Weight*"
 invert = nhanes_ps %>%
   select(diabete, heart_attack, weight, p_score) %>%
   mutate(
@@ -183,7 +183,7 @@ invert = nhanes_ps %>%
     names_from = Diabetes,
     values_from = prop
   ) %>%
-  knitr::kable(format = 'html') %>%
+  knitr::kable(format = 'html', caption = cap4) %>%
   kableExtra::kable_styling("striped", full_width = TRUE) %>%
   kableExtra::add_header_above(
     header = c("Proportion of Heat Attack with Inverse Propensity Weight" = 3)

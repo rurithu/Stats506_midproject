@@ -11,7 +11,7 @@
 
 <meta name="author" content="Yawen Hu, yawenhu@umich.edu" />
 
-<meta name="date" content="2020-11-12" />
+<meta name="date" content="2020-11-13" />
 
 <title>writeup_R</title>
 
@@ -589,7 +589,7 @@ summary {
 
 <h1 class="title toc-ignore">writeup_R</h1>
 <h4 class="author">Yawen Hu, <a href="mailto:yawenhu@umich.edu" class="email">yawenhu@umich.edu</a></h4>
-<h4 class="date">November 12, 2020</h4>
+<h4 class="date">November 13, 2020</h4>
 
 </div>
 
@@ -674,33 +674,32 @@ print(match_tab, smd = TRUE)  </code></pre>
 <pre><code>##                                    Stratified by diabete
 ##                                     0             1             SMD   
 ##   n                                   824           824               
-##   relative_heart_attack (mean (SD))  0.18 (0.38)   0.17 (0.38)   0.010
-##   gender (mean (SD))                 0.46 (0.50)   0.45 (0.50)   0.019
-##   age (mean (SD))                   63.34 (14.50) 63.38 (12.19)  0.003
-##   race (mean (SD))                   3.28 (1.09)   3.22 (1.28)   0.050
-##   edu (mean (SD))                    3.38 (1.25)   3.29 (1.33)   0.072
-##   annual_income (mean (SD))          8.26 (4.18)   8.42 (4.09)   0.038
-##   bmi (mean (SD))                   31.83 (8.12)  31.98 (7.37)   0.020
-##   smoke_life (mean (SD))             0.48 (0.50)   0.50 (0.50)   0.044
-##   phy_vigorous (mean (SD))           0.17 (0.38)   0.17 (0.38)   0.006
-##   phy_moderate (mean (SD))           0.35 (0.48)   0.35 (0.48)   0.008
-##   blood_press (mean (SD))            0.68 (0.47)   0.69 (0.46)   0.018
-##   blood_press2 (mean (SD))           0.57 (0.49)   0.58 (0.49)   0.012
-##   hyper_med (mean (SD))              0.67 (0.47)   0.67 (0.47)   0.005
-##   high_chol (mean (SD))              0.58 (0.49)   0.60 (0.49)   0.035
-##   meadial_access (mean (SD))         0.92 (0.27)   0.92 (0.27)   0.004
-##   cover_hc (mean (SD))               0.92 (0.28)   0.91 (0.29)   0.017
-##   health_diet (mean (SD))            1.93 (1.07)   1.87 (1.00)   0.056
-##   year_smoke (mean (SD))            21.51 (25.09) 22.46 (24.67)  0.038
-##   year_hyper (mean (SD))            10.40 (12.53) 11.12 (12.98)  0.056</code></pre>
+##   relative_heart_attack (mean (SD))  0.16 (0.37)   0.17 (0.38)   0.032
+##   gender (mean (SD))                 0.48 (0.50)   0.45 (0.50)   0.049
+##   age (mean (SD))                   64.06 (14.10) 63.38 (12.19)  0.052
+##   race (mean (SD))                   3.20 (1.10)   3.22 (1.28)   0.022
+##   edu (mean (SD))                    3.30 (1.31)   3.29 (1.33)   0.006
+##   annual_income (mean (SD))          8.33 (4.02)   8.42 (4.09)   0.023
+##   bmi (mean (SD))                   31.84 (7.91)  31.98 (7.37)   0.018
+##   smoke_life (mean (SD))             0.49 (0.50)   0.50 (0.50)   0.019
+##   phy_vigorous (mean (SD))           0.16 (0.36)   0.17 (0.38)   0.046
+##   phy_moderate (mean (SD))           0.32 (0.47)   0.35 (0.48)   0.057
+##   blood_press (mean (SD))            0.65 (0.48)   0.69 (0.46)   0.088
+##   blood_press2 (mean (SD))           0.54 (0.50)   0.58 (0.49)   0.086
+##   hyper_med (mean (SD))              0.63 (0.48)   0.67 (0.47)   0.081
+##   high_chol (mean (SD))              0.57 (0.50)   0.60 (0.49)   0.052
+##   meadial_access (mean (SD))         0.92 (0.27)   0.92 (0.27)   0.014
+##   cover_hc (mean (SD))               0.91 (0.29)   0.91 (0.29)   0.013
+##   health_diet (mean (SD))            1.91 (1.05)   1.87 (1.00)   0.033
+##   year_smoke (mean (SD))            22.29 (25.21) 22.46 (24.67)  0.007
+##   year_hyper (mean (SD))            10.12 (12.54) 11.12 (12.98)  0.078</code></pre>
 </div>
 <div id="iv.-comparison-between-pre_match-data-and-matched-data." class="section level3">
 <h3>IV. Comparison between pre_match data and matched data.</h3>
-<div id="table-1" class="section level5">
-<h5><strong>Table 1: </strong></h5>
 <details>
 <p><summary> Click to view <code>code for Table1</code>. </summary></p>
-<pre class="r"><code>tab_pre_mt = nhanes %&gt;%
+<pre class="r"><code>cap2 = &quot;**Table 1.** *Proportion of Heat Attack with Pre-matched Group*&quot;
+tab_pre_mt = nhanes %&gt;%
   group_by(diabete, heart_attack) %&gt;%
   summarize(n = sum(weight), .groups = &quot;drop_last&quot;) %&gt;%
   mutate(
@@ -716,13 +715,16 @@ print(match_tab, smd = TRUE)  </code></pre>
     names_from = Diabetes,
     values_from = prop
   ) %&gt;%
-  knitr::kable(format = &#39;html&#39;) %&gt;%
+  knitr::kable(format = &#39;html&#39;, caption = cap2) %&gt;%
   kableExtra::kable_styling(&quot;striped&quot;, full_width = TRUE) %&gt;%
   kableExtra::add_header_above(
     header = c(&quot;Proportion of Heat Attack with Pre-matched Group&quot; = 3)
   )</code></pre>
 </details>
 <table class="table table-striped" style="margin-left: auto; margin-right: auto;">
+<caption>
+<strong>Table 1.</strong> <em>Proportion of Heat Attack with Pre-matched Group</em>
+</caption>
 <thead>
 <tr>
 <th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="3">
@@ -768,12 +770,10 @@ YES
 </tr>
 </tbody>
 </table>
-</div>
-<div id="table-2" class="section level5">
-<h5><strong>Table 2: </strong></h5>
 <details>
 <p><summary> Click to view <code>code for Table2</code>. </summary></p>
-<pre class="r"><code>tab_mt = ps_match %&gt;%
+<pre class="r"><code>cap3 = &quot;**Table 2.** *Proportion of Heat Attack with Matched Group*&quot;
+tab_mt = ps_match %&gt;%
   group_by(diabete, heart_attack) %&gt;%
   summarize(n = sum(weight), .groups = &quot;drop_last&quot;) %&gt;%
   mutate(
@@ -789,13 +789,16 @@ YES
     names_from = Diabetes,
     values_from = prop
   ) %&gt;%
-  knitr::kable(format = &#39;html&#39;) %&gt;%
+  knitr::kable(format = &#39;html&#39;, caption = cap3) %&gt;%
   kableExtra::kable_styling(&quot;striped&quot;, full_width = TRUE) %&gt;%
   kableExtra::add_header_above(
     header = c(&quot;Proportion of Heat Attack with Matched Group&quot; = 3)
   )</code></pre>
 </details>
 <table class="table table-striped" style="margin-left: auto; margin-right: auto;">
+<caption>
+<strong>Table 2.</strong> <em>Proportion of Heat Attack with Matched Group</em>
+</caption>
 <thead>
 <tr>
 <th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="3">
@@ -822,7 +825,7 @@ Diabetes
 NO
 </td>
 <td style="text-align:left;">
-27283709 (93.72%)
+28610298 (95.53%)
 </td>
 <td style="text-align:left;">
 21930140 (85.24%)
@@ -833,7 +836,7 @@ NO
 YES
 </td>
 <td style="text-align:left;">
-1828698 (6.28%)
+1339654 (4.47%)
 </td>
 <td style="text-align:left;">
 3796836 (14.76%)
@@ -842,14 +845,12 @@ YES
 </tbody>
 </table>
 </div>
-</div>
 <div id="v.-inverse-propensity-score-weighting" class="section level3">
 <h3>V. Inverse propensity score weighting:</h3>
-<div id="table-3" class="section level5">
-<h5><strong>Table 3: </strong></h5>
 <details>
 <p><summary> Click to view <code>code for Table3</code>. </summary></p>
-<pre class="r"><code>invert = nhanes_ps %&gt;%
+<pre class="r"><code>cap4 = &quot;**Table 3.** *Proportion of Heat Attack with Inverse Propensity Weight*&quot;
+invert = nhanes_ps %&gt;%
   select(diabete, heart_attack, weight, p_score) %&gt;%
   mutate(
     inverse_wt = ifelse(diabete == 1, 1/p_score, 1/(1-p_score)),
@@ -870,13 +871,16 @@ YES
     names_from = Diabetes,
     values_from = prop
   ) %&gt;%
-  knitr::kable(format = &#39;html&#39;) %&gt;%
+  knitr::kable(format = &#39;html&#39;, caption = cap4) %&gt;%
   kableExtra::kable_styling(&quot;striped&quot;, full_width = TRUE) %&gt;%
   kableExtra::add_header_above(
     header = c(&quot;Proportion of Heat Attack with Inverse Propensity Weight&quot; = 3)
   )</code></pre>
 </details>
 <table class="table table-striped" style="margin-left: auto; margin-right: auto;">
+<caption>
+<strong>Table 3.</strong> <em>Proportion of Heat Attack with Inverse Propensity Weight</em>
+</caption>
 <thead>
 <tr>
 <th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="3">
@@ -923,7 +927,6 @@ YES
 </tbody>
 </table>
 <div style="page-break-after: always;"></div>
-</div>
 </div>
 
 
