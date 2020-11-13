@@ -61,4 +61,5 @@ Predictors:
 | `meadial_access`        | Being able to have medical access or nor            |
 | `cover_hc`              | Covered by health care or not                       |
 | `health_diet`           | Having a health diet or not                         |
+
 **Note:** For all the binary variable here with value 1 and 0, 1 = Yes and 0 = No
