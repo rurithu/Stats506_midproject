@@ -432,5 +432,66 @@ invert
 
 
 
+### SAS script
+
+<details>
+ <summary> `GroupProject_SAS_Hongfan.sas` </summary>
+```{r GroupProject_SAS_Hongfan.sas, comment=""}
+readLines("./SAS/GroupProject_SAS_Hongfan.sas")
+```
+</details>
+
+#### Code of makeing table
+
+```{r make tables, message=FALSE}
+beforematch = read_delim("./SAS/output/freq_table.csv", delim = ',')
+aftermatch = read_delim("./SAS/output/freq_table_merge.csv", delim = ',')
+inverseweight = read_delim("./SAS/output/ps_match_inverse_table.csv", delim = ',')
+tab = function(df, header = c("Proportion" = 3)){
+  df %>%
+  mutate(
+    `Heart Attack` = ifelse(heart_attack == 1, "YES", "NO"),
+    diabetes = ifelse(diabetes == 1, "Diabetes", "Non-Diabetes")
+    ) %>%
+  group_by(diabetes) %>%
+  mutate(pct = COUNT / sum(COUNT)) %>%
+  mutate(COUNT_PCT = sprintf('%.0f (%.1f%s)', COUNT, pct * 100, "%")) %>%
+  select(`Heart Attack`, diabetes, COUNT_PCT) %>%
+  pivot_wider(id_cols = `Heart Attack`,
+               names_from = 'diabetes', 
+               values_from = 'COUNT_PCT') %>%
+  knitr::kable(format = 'html') %>%
+  kableExtra::kable_styling("striped", full_width = TRUE) %>%
+  kableExtra::add_header_above(header)
+}
+```
+
+#### Table Aefore Match
+
+```{r table_1_sas, fig.cap = cap}
+tab(beforematch, header = c("Proportion of Heat Attack with Pre-matched Group" = 3))
+cap = paste0(
+"**Table 1.** *Proportion of Heat Attack with Pre-matched Group"
+)
+```
+
+#### Table After Match
+
+```{r table_2_sas, fig.cap = cap}
+tab(aftermatch, header = c("Proportion of Heat Attack with Matched Group" = 3))
+cap = paste0(
+"**Table 2.** *Proportion of Heat Attack with Matched Group"
+)
+```
+
+#### Table Using Iverse Propensity Weight
+
+```{r table_3_sas, fig.cap = cap}
+tab(inverseweight, header = c("Proportion of Heat Attack with Inverse Propensity Weight " = 3))
+cap = paste0(
+"**Table 3.** *Proportion of Heat Attack with Inverse Propensity Weight"
+)
+```
+
 
 
