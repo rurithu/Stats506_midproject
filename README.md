@@ -1,5 +1,8 @@
 ## Stats506 Midterm Porject Group 1
 
+### Report
+Click [link](http://htmlpreview.github.io/?https://github.com/ZhihaoXu/Stats506_midproject/blob/main/writeup.html) to see our latest version of write-up
+
 ### Topic
 Creating propensity score weights and using inverse propensity weights and/or matching for analysis.
 
