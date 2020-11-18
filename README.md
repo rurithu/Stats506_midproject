@@ -14,6 +14,12 @@ Creating propensity score weights and using inverse propensity weights and/or ma
 #### Research Question
 Whether or not adult patients with diabetes have higher risk for heart attack (myocardial infarction) in the United States?  
 
+#### Group Member and Software
+- Zhihao Xu: Python
+- Yawen Hu: R
+- Hongfan Chen: SAS
+- Rithu Uppalapati: STATA
+
 ### Code Organization
 - `writeup.Rmd` / `writeup.html`: the write-up for this project
 - `data/`:  
@@ -23,19 +29,15 @@ Whether or not adult patients with diabetes have higher risk for heart attack (m
 - `py/`:  
   - `prop_py.ipynb`: the main python code for tutorial
   - `writeup_py.Rmd` / `writeup_py.html`: the write-up for the python tutorial
-  - The codes in this folder are mainly done by Zhihao Xu
 - `R/`:  
   - `midterm_project.R`: the main R code for tutorial
   - `writeup_R.Rmd` / `writeup_R.html`: the write-up for the R tutorial
-  - The codes in this folder are mainly done by Yawen Hu
 - `SAS/`:  
   - `GroupProject_SAS_Hongfan.sas`: the main SAS code for tutorial
   - `GroupProject_SAS_Hongfan.Rmd` / `GroupProject_SAS_Hongfan.html`: the write-up for SAS tutorial
-  - The codes in this folder are mainly done by Hongfan Chen
 - `STATA/`:  
   - `Group_proj_Rithu.do`: the main Stata code for tutorial
   - `rithu_stata.Rmd` / `rithu_stata.html`: the write-up for STATA tutorial
-  - The codes in this folder are mainly done by Rithu Uppalapati
 
 
 ### TODO LIST
