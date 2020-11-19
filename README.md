@@ -14,7 +14,7 @@ Creating propensity score weights and using inverse propensity weights and/or ma
 #### Research Question
 Whether or not adult patients with diabetes have higher risk for heart attack (myocardial infarction) in the United States?  
 
-#### Group Member and Software
+### Group Member and Software
 - Zhihao Xu: Python
 - Yawen Hu: R
 - Hongfan Chen: SAS
