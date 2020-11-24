@@ -21,7 +21,7 @@ libname midterm './';
 %macro csvexport(dataset, lib=work);
  proc export
    data = &lib..&dataset
-   outfile = "./&dataset..csv"
+   outfile = "./output/&dataset..csv"
    dbms = dlm
    replace;
   delimiter=",";
@@ -66,7 +66,7 @@ data ps_match;
 run;
 
 /* ------------------------------------------------------------------------- */
-/* Propensity Score Matching: ---------------------------------------------- */
+/* ----------------------- Propensity Score Matching ----------------------- */
 /* ------------------------------------------------------------------------- */
 
 /* Compute standard deviation of the propensity score */
@@ -92,7 +92,7 @@ run;
 /* The macro %gmatch.sas uses the following parameters:
  Data: the name of the SAS data set containing the treated and untreated subjects.
  Group: the variable identifying treated/untreated subjects.
- Id: the variable denoting subjects’ identification numbers.
+ Id: the variable denoting subjectsEidentification numbers.
  Mvars: the list of variables on which one is matching.
  Wts: the list of non-negative weights corresponding to each matching variable.
  Dist: the type of distance to calculate [1 indicates weighted sum (over matching
@@ -168,7 +168,7 @@ proc freq data=ps_merge noprint;
 run;
 
 /* ------------------------------------------------------------------------- */
-/* Inverse Propensity Score Weight: ---------------------------------------- */
+/* ------------------- Inverse Propensity Score Weight --------------------- */
 /* ------------------------------------------------------------------------- */
 
 /* creating inverse weight */
@@ -191,15 +191,45 @@ proc freq data=ps_match_inverse noprint;
   weight total_weight;
 run;
 /* ------------------------------------------------------------------------- */
-/* export results: --------------------------------------------------- */
+/* -------------------------- Export Results ------------------------------- */
 /* ------------------------------------------------------------------------- */
+
 %csvexport(ps_match_inverse_table, lib=work)
 %csvexport(freq_table_merge, lib=work)
 %csvexport(freq_table, lib=work)
 run;
 
 /* ------------------------------------------------------------------------- */
-/* Descriptive analysis: --------------------------------------------------- */
+/* ------------------------ Descriptive Analysis --------------------------- */
+/* ------------------------------------------------------------------------- */
+
+/* Decode by Formatting */
+proc format library = midterm.nhanes_format;
+  value pressone
+	0 = "No"
+	1 = "Yes";
+  value presstwo
+	0 = "No"
+	1 = "Yes";
+  value diabetes
+    0 = "No"
+	1 = "Yes";
+run;
+
+/* Format catalog and search order */
+options fmtsearch = (midterm.nhanes_format);
+
+data nhanes;
+ set nhanes;
+ format blood_press2 presstwo. blood_press pressone. diabetes diabetes.;
+run;
+
+data ps_match;
+ set ps_match;
+ format diabetes diabetes.;
+run;
+
+/* -------- Comparison Graph Between Prematch Data And Macthed Data -------- */
 /* ------------------------------------------------------------------------- */
 
 /* sort for by steo use */
@@ -217,65 +247,142 @@ run;
 /* age distribution before match */
 goptions reset=all;
 proc gchart data=nhanes;
-  vbar age/group=diabetes type=freq discrete;
-    title 'Age distribution before match'; 
+  vbar age/sumvar=weight group=diabetes type=sum discrete;
+    title 'Age Distribution Before Match'; 
 run;
 /* age distribution after match */
 proc gchart data=nhanes_match;
-  vbar age/group=diabetes type=freq discrete;
-    title 'Age distribution after match'; 
+  vbar age/sumvar=weight group=diabetes type=sum discrete;
+    title 'Age Distribution After Match'; 
 run;
 
 /* Year of smoke distribution before match */
-goptions reset=all;
 proc gchart data=nhanes;
   where year_smoke > 0;
-  vbar year_smoke/group=diabetes type=freq discrete;
-    title 'Year of smoke distribution before match'; 
+  vbar year_smoke/sumvar=weight group=diabetes type=sum discrete;
+    title 'Year of Smoke Distribution Before Match'; 
 run;
 /* Year of smoke distribution after match */
 proc gchart data=nhanes_match;
   where year_smoke > 0;
-  vbar year_smoke/group=diabetes type=freq discrete;
-    title 'Year of smoke distribution after match'; 
+  vbar year_smoke/sumvar=weight group=diabetes type=sum discrete;
+    title 'Year of Smoke Distribution After Match'; 
 run;
 
 /* Year of hypertension distribution before match */
 goptions reset=all;
 proc gchart data=nhanes;
   where year_hyper > 0;
-  vbar year_hyper/group=diabetes type=freq discrete;
-    title 'Year of hypertension distribution before match'; 
+  vbar year_hyper/sumvar=weight group=diabetes type=sum discrete;
+    title 'Year of Hypertension Distribution Before Match'; 
 run;
 /* Year of hypertension distribution after match */
 proc gchart data=nhanes_match;
   where year_hyper > 0;
-  vbar year_hyper/group=diabetes type=freq discrete;
-    title 'Year of hypertension distribution after match'; 
+  vbar year_hyper/sumvar=weight group=diabetes type=sum discrete;
+    title 'Year of Hypertension Distribution After Match'; 
 run;
 
 /* Being told high blood pressure 2+ more times or not before match */
 goptions reset=all;
 proc gchart data=nhanes;
-  vbar blood_press2/group=diabetes type=freq discrete;
-    title 'Being told high blood pressure 2+ more times or not before match';
+  vbar blood_press2/sumvar=weight group=diabetes type=sum discrete;
+    title 'Being Told High Blood Pressure 2+ More Times or Not Before Match';
 run;
 /* Being told high blood pressure 2+ more times or not after match */
 proc gchart data=nhanes_match;
-  vbar blood_press2/group=diabetes type=freq discrete;
-    title 'Being told high blood pressure 2+ more times or not after match';
+  vbar blood_press2/sumvar=weight group=diabetes type=sum discrete;
+    title 'Being Told High Blood Pressure 2+ More Times or Not After Match';
 run;
 
 /* Being told high blood pressure before match */
 goptions reset=all;
 proc gchart data=nhanes;
-  vbar blood_press/group=diabetes type=freq discrete;
-    title 'Being told high blood pressure before match';
+  vbar blood_press/sumvar=weight group=diabetes type=sum discrete;
+    title 'Being Told High Blood Pressure Before Match';
 run;
 /* Being told high blood pressure after match */
 proc gchart data=nhanes_match;
-  vbar blood_press/group=diabetes type=freq discrete;
-    title 'Being told high blood pressure after match';
+  vbar blood_press/sumvar=weight group=diabetes type=sum discrete;
+    title 'Being Told High Blood Pressure After Match';
 run;
 
+/* -------------------- Distribution of Propensity Score ------------------- */
+/* ------------------------------------------------------------------------- */
 
+/* sort data for group step */
+proc sort data=ps_match; 
+  by diabetes;
+run;
+
+/* set color for bar chart */
+pattern1 v=solid color=CREAM;
+pattern2 v=solid color=VLIGB;
+
+/* plot distribution of propensity score, combined*/
+proc gchart data=ps_match;
+  vbar ps/subgroup=diabetes;
+    title 'Distribution of Propensity Score';
+run;
+
+/* ------------------------------------------------------------------------- */
+/* ---------------------------- Balance Check  ----------------------------- */
+/* ------------------------------------------------------------------------- */
+
+/* Compute mean and standard deviation for matched data -------------------- */
+
+/* sort data for by step */
+
+proc sort data=nhanes_match;
+  by diabetes;
+run;
+
+proc means data=nhanes_match mean std;
+  var relative_heart_attack gender race edu smoke_life
+      phy_vigorous phy_moderate blood_press blood_press2
+      hyper_med hbq_med high_chol meadial_access cover_hc
+      health_diet age annual_income bmi year_smoke year_hyper;
+  by diabetes;
+  freq weight;
+  ods output summary = matched_summary;
+run;
+
+ods output close;
+
+/* Compute mean and standard deviation for prematch data ------------------- */
+/* sort data for by step */
+
+proc sort data=nhanes;
+  by diabetes;
+run;
+
+proc means data=nhanes mean std;
+  var relative_heart_attack gender race edu smoke_life
+      phy_vigorous phy_moderate blood_press blood_press2
+      hyper_med hbq_med high_chol meadial_access cover_hc
+      health_diet age annual_income bmi year_smoke year_hyper;
+  by diabetes;
+  freq weight;
+  ods output summary = pre_summary;
+run;
+
+ods output close;
+
+/* Performing t-test for matched data -------------------------------------- */
+proc ttest data=nhanes_match;
+  where diabetes in (0, 1);
+  var heart_attack;
+  class diabetes;
+  weight weight;
+  ods output ttests = ttest conflimits = conflimits;
+run;
+
+/* ------------------------------------------------------------------------- */
+/* -------------------------- Export Results ------------------------------- */
+/* ------------------------------------------------------------------------- */
+
+%csvexport(pre_summary, lib=work)
+%csvexport(matched_summary, lib=work)
+%csvexport(conflimits, lib=work)
+%csvexport(ttest, lib=work)
+run;
