@@ -13,14 +13,16 @@ use_python("/opt/anaconda3/bin/python")
 ```
 
 
+In this `python` tutorial, we mainly use the following package. `numpy` and `pandas` are used to read and process the data, `sklearn.linear_model` is used to fit the logistic regression model, `statsmodels.stats.weightstats` is used to construct the t-test with sample weight. All the algorithms related to propensity score weighting in this tutorial are implemented in `python`, but the tables and figures are visualized by `R(tidyverse)` using the output extracted from `python`. All the `python` variables are stored in a `R` list called `py` automatically and can be extracted by `$`.
+
+
 ```{python load_package, engine.path="/opt/anaconda3/bin/python"}
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from statsmodels.stats.weightstats import ttest_ind
-from matplotlib import pyplot as plt
-from scipy import stats
 ```
+
 
 ```{python read_data, engine.path="/opt/anaconda3/bin/python"}
 nhanes = pd.read_csv('../data/nhanes.csv')
@@ -37,6 +39,23 @@ lg.fit(nhanes_X, nhanes_diab, sample_weight = weight)
 prop_score = lg.predict_proba(nhanes_X)[:,1]
 ```
 
+```{r py_psplot, fig.cap=cap,fig.height=4,fig.width=8,echo=FALSE}
+cap = "**Figure 1:** Propensity score distribution by Treated/Control Groups"
+ps = data.frame(
+  p_score = py$prop_score,
+  diabete = ifelse(py$nhanes_diab, "Diabetes", "No Diabetes")
+)
+
+ps %>%
+  ggplot( aes(x = p_score) ) + 
+  geom_histogram( aes(color = diabete, fill = diabete),
+                      position = "identity", bins = 30, alpha = 0.3) +
+  xlab("Propensity Score") + 
+  ylab("Frequency") +
+  theme_bw()
+```
+
+Through **Figure 1**, we can see that, compared with diabetes patient, the non-diabetes patients usually have lower propensity scores. If we compare the `heart attack` rate directly, it is very likely to lead to a misleading result. Hence, we need to implement the Propensity Score Weighting/Matching to reduce the impact of covariates.
 
 #### Propensity Score Matching by Nearest Neighbor
 ```{python psmatch}
@@ -63,6 +82,7 @@ heart_non_dia = nhanes['heart_attack'].values[non_dia_idx]
 heart_dia_matched = nhanes['heart_attack'].values[dia_idx_matched]
 ```
 
+
 ```{python ttest}
 ttest_match = ttest_ind(heart_dia_matched, heart_matched, usevar='unequal', 
                         weights=(weight[dia_idx_matched], weight[matched_idx]))
@@ -73,13 +93,46 @@ ttest_match = ttest_ind(heart_dia_matched, heart_matched, usevar='unequal',
 ps_weight = nhanes['diabete']/prop_score + (1 - nhanes['diabete'])/(1 - prop_score)
 ```
 
+#### Balance Checking
+```{python balcheck}
+col = list(nhanes_X.columns)
+result_mean_after = []
+result_sd_after = []
+for i in nhanes_X.columns:
+    re_m = [np.average(nhanes_X[i][matched_idx],
+                       weights=nhanes['weight'][matched_idx]), 
+            np.average(nhanes_X[i][dia_idx_matched],
+                       weights=nhanes['weight'][dia_idx_matched])]
+    re_sd = [np.sqrt(np.average((nhanes_X[i][matched_idx]-re_m[0])**2, 
+                                weights=nhanes['weight'][matched_idx])), 
+             np.sqrt(np.average((nhanes_X[i][dia_idx_matched]-re_m[1])**2, 
+                                weights=nhanes['weight'][dia_idx_matched]))]
+    result_mean_after.append(re_m)
+    result_sd_after.append(re_sd)
+
+result_mean_before = []
+result_sd_before = []
+for i in nhanes_X.columns:
+    re_m = [np.average(nhanes_X[i][non_dia_idx[0]],
+                       weights=nhanes['weight'][non_dia_idx[0]]), 
+            np.average(nhanes_X[i][dia_idx[0]],
+                       weights=nhanes['weight'][dia_idx[0]])]
+    re_sd = [np.sqrt(np.average((nhanes_X[i][non_dia_idx[0]]-re_m[0])**2, 
+                                 weights=nhanes['weight'][non_dia_idx[0]])), 
+             np.sqrt(np.average((nhanes_X[i][dia_idx[0]]-re_m[1])**2, 
+                                 weights=nhanes['weight'][dia_idx[0]]))]
+    result_mean_before.append(re_m)
+    result_sd_before.append(re_sd)
+```
+
+
 
 #### {.tabset .tabset-pills .tabset-fade}
-##### Table 1: Original Control Group
+##### Table 1: Before Matching
 ```{r tab1, echo=FALSE}
 cap1 = "**Table 1:** Proportion of Heat Attack with Original Control Group"
 tab_not_match = py$nhanes %>%
-  select(heart_attack, diabete, weight) %>%
+  dplyr::select(heart_attack, diabete, weight) %>%
   group_by(diabete, heart_attack) %>%
   summarise(freq = sum(weight)) %>%
   mutate(
@@ -87,7 +140,7 @@ tab_not_match = py$nhanes %>%
     freq_p = paste0(sprintf("%9.0f", freq),"(",
                     sprintf("%5.1f", prop*100),"%)")
   )%>%
-  select(-freq,-prop)
+  dplyr::select(-freq,-prop)
 
 as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
   bind_cols(tab_not_match[1:2,3]) %>%
@@ -97,11 +150,11 @@ as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
   kableExtra::kable_styling('striped', full_width = TRUE)
 ```
 
-##### Table 2: Matched Control Group
+##### Table 2: After Matching
 ```{r tab2, echo=FALSE}
 cap2 = "**Table 2:** Proportion of Heat Attack with Matched Control Group"
 tab_match = py$nhanes[c(py$dia_idx_matched+1,py$matched_idx+1),] %>%
-  select(heart_attack, diabete, weight) %>%
+  dplyr::select(heart_attack, diabete, weight) %>%
   group_by(diabete, heart_attack) %>%
   summarise(freq = sum(weight)) %>%
   mutate(
@@ -109,7 +162,7 @@ tab_match = py$nhanes[c(py$dia_idx_matched+1,py$matched_idx+1),] %>%
     freq_p = paste0(sprintf("%9.0f", freq),"(",
                     sprintf("%5.1f", prop*100),"%)")
   )%>%
-  select(-freq,-prop)
+  dplyr::select(-freq,-prop)
 as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
   bind_cols(tab_match[1:2,3]) %>%
   bind_cols(tab_match[3:4,3]) %>%
@@ -132,12 +185,12 @@ as_tibble_row(c(tstat = py$ttest_match[[1]],
 
 
 
-##### Table 4: Inverse Propensity Score Weighting
+##### Table 4: Inverse Weighting
 ```{r tab4, echo=FALSE}
 cap4 = paste0("**Table 4:** Proportion of Heat Attack with ", 
               "Inverse Propensity Score Weighting")
 tab_weight = py$nhanes %>%
-  select(heart_attack, diabete, weight) %>%
+  dplyr::select(heart_attack, diabete, weight) %>%
   bind_cols(ps_weight = py$ps_weight) %>%
   group_by(diabete, heart_attack) %>%
   summarise(freq = sum(weight*ps_weight)) %>%
@@ -146,7 +199,7 @@ tab_weight = py$nhanes %>%
     freq_p = paste0(sprintf("%9.0f", freq),"(",
                     sprintf("%5.1f", prop*100),"%)")
   )%>%
-  select(-freq,-prop)
+  dplyr::select(-freq,-prop)
 as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
   bind_cols(tab_weight[1:2,3]) %>%
   bind_cols(tab_weight[3:4,3]) %>%
@@ -154,9 +207,31 @@ as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
                 col.names = c("Heart Attack","Non-diabetes","Diabetes")) %>%
   kableExtra::kable_styling('striped', full_width = TRUE)
 ```
+##### Table 5: Balance Checking
+
+```{r py_balchech,echo=FALSE}
+cap5 = "**Table 5:** Balance Checking Table before and after matching"
+result_mean_after = do.call("rbind",py$result_mean_after)
+result_sd_after = do.call("rbind",py$result_sd_after)
+result_mean_before = do.call("rbind",py$result_mean_before)
+result_sd_before = do.call("rbind",py$result_sd_before)
+py$col %>%
+  bind_cols(paste0(sprintf("%5.3f", result_mean_before[,1]),"(",
+                       sprintf("%5.3f", result_sd_before[,1]),")")) %>%
+  bind_cols(paste0(sprintf("%5.3f", result_mean_before[,2]),"(",
+                       sprintf("%5.3f", result_sd_before[,2]),")")) %>%
+  bind_cols(paste0(sprintf("%5.3f", result_mean_after[,1]),"(",
+                       sprintf("%5.3f", result_sd_after[,1]),")")) %>%
+  bind_cols(paste0(sprintf("%5.3f", result_mean_after[,2]),"(",
+                       sprintf("%5.3f", result_sd_after[,2]),")")) %>%
+  knitr::kable(format = "html", align = "lrrrr", caption = cap5,
+               col.names = c("Covariate","Non-diabetes","Diabetes",
+                             "Non-diabetes","Diabetes")) %>%
+  kableExtra::kable_styling('striped', full_width = TRUE) %>%
+  kableExtra::add_header_above(c(" " = 1, "Before Matching" = 2, 
+                                 "After Matching" = 2))
+```
 
 
-
-
-
-
+#### Result Interpretation
+Through **Table 1**, **Table 2** and **Table 4**, we can see that before matching/weighting, the rate of `heart attack` in diabetes patients is around 7 times larger than the non-diabetes patients. After matching/weighting, this rate decreases to only 2-3 times larger, which indicates that our matching/weighting significantly reduce the effect of the covariates. **Table 5** also shows similar result. Before matching, the `heart_attack` rate in `relative_heart_attack`, `age`, `bmi`, `blood_press`, `blood_press2`, `hyper_med`, `hbq_med`, `year_smoke` and `year_hyper` are significantly different between diabetes patients and non-diabetes patients. However, after matching, the rates in all corresponding covariates look similar, which is another evidence of the effect of propensity score matching. **Table 3** shows the t test result, which indicates that after matching, the `heart attack` rate in diabetes patients is still higher than the non-diabetes patients.
