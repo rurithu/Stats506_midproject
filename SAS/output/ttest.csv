@@ -1,0 +1,3 @@
+Variable,Method,Variances,tValue,DF,Probt
+heart_attack,Pooled,Equal,-6.67,1626,<.0001
+heart_attack,Satterthwaite,Unequal,-6.58,1353.8,<.0001

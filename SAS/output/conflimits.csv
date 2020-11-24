@@ -1,0 +1,5 @@
+Variable,Class,Method,Variances,Mean,LowerCLMean,UpperCLMean,StdDev,LowerCLStdDev,UpperCLStdDev,UMPULowerCLStdDev,UMPUUpperCLStdDev
+heart_attack,No,,,0.0498,0.0348,0.0648,41.2863,39.3735,43.3959,39.3577,43.3778
+heart_attack,Yes,,,0.1455,0.1212,0.1698,62.5709,59.6721,65.7681,59.6480,65.7407
+heart_attack,Diff (1-2),Pooled,Equal,-0.0957,-0.1238,-0.0675,53.0079,51.2472,54.8949,51.2368,54.8834
+heart_attack,Diff (1-2),Satterthwaite,Unequal,-0.0957,-0.1242,-0.0672,_,_,_,_,_
