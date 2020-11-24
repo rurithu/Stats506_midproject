@@ -1,4 +1,4 @@
-## Stats506 Midterm Porject Group 1
+## Stats506 Midterm Project Group 1
 
 ### Report
 Click [here](http://htmlpreview.github.io/?https://github.com/ZhihaoXu/Stats506_midproject/blob/main/writeup.html) to see our latest version of write-up
