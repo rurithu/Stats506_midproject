@@ -1,8 +1,10 @@
 ---
-title: "writeup_py"
-author: "Xu Zhihao"
-date: "11/12/2020"
-output: html_document
+title: "Stats 506, F20, Midterm Project Python Write-up"
+author: "Zhihao Xu, xuzhihao@umich.edu"
+date: "`r format.Date(Sys.Date(), '%B %d, %Y')`"
+output: 
+  html_document:
+    code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
@@ -13,7 +15,14 @@ use_python("/opt/anaconda3/bin/python")
 ```
 
 
-In this `python` tutorial, we mainly use the following package. `numpy` and `pandas` are used to read and process the data, `sklearn.linear_model` is used to fit the logistic regression model, `statsmodels.stats.weightstats` is used to construct the t-test with sample weight. All the algorithms related to propensity score weighting in this tutorial are implemented in `python`, but the tables and figures are visualized by `R(tidyverse)` using the output extracted from `python`. All the `python` variables are stored in a `R` list called `py` automatically and can be extracted by `$`.
+In this `python` tutorial, we mainly use the following package. `numpy` and 
+`pandas` are used to read and process the data, `sklearn.linear_model` is used 
+to fit the logistic regression model, `statsmodels.stats.weightstats` is used 
+to construct the t-test with sample weight. All the algorithms related to 
+propensity score weighting in this tutorial are implemented in `python`, 
+but the tables and figures are visualized by `R(tidyverse)` using the 
+output extracted from `python`. All the `python` variables are stored in a `R` 
+list called `py` automatically and can be extracted by `$`.
 
 
 ```{python load_package, engine.path="/opt/anaconda3/bin/python"}
@@ -55,7 +64,11 @@ ps %>%
   theme_bw()
 ```
 
-Through **Figure 1**, we can see that, compared with diabetes patient, the non-diabetes patients usually have lower propensity scores. If we compare the `heart attack` rate directly, it is very likely to lead to a misleading result. Hence, we need to implement the Propensity Score Weighting/Matching to reduce the impact of covariates.
+Through **Figure 1**, we can see that, compared with diabetes patient, 
+the non-diabetes patients usually have lower propensity scores. 
+If we compare the `heart attack` rate directly, it is very likely to 
+lead to a misleading result. Hence, we need to implement the Propensity 
+Score Weighting/Matching to reduce the impact of covariates.
 
 #### Propensity Score Matching by Nearest Neighbor
 ```{python psmatch}
@@ -234,4 +247,17 @@ py$col %>%
 
 
 #### Result Interpretation
-Through **Table 1**, **Table 2** and **Table 4**, we can see that before matching/weighting, the rate of `heart attack` in diabetes patients is around 7 times larger than the non-diabetes patients. After matching/weighting, this rate decreases to only 2-3 times larger, which indicates that our matching/weighting significantly reduce the effect of the covariates. **Table 5** also shows similar result. Before matching, the `heart_attack` rate in `relative_heart_attack`, `age`, `bmi`, `blood_press`, `blood_press2`, `hyper_med`, `hbq_med`, `year_smoke` and `year_hyper` are significantly different between diabetes patients and non-diabetes patients. However, after matching, the rates in all corresponding covariates look similar, which is another evidence of the effect of propensity score matching. **Table 3** shows the t test result, which indicates that after matching, the `heart attack` rate in diabetes patients is still higher than the non-diabetes patients.
+Through **Table 1**, **Table 2** and **Table 4**, we can see that before 
+matching/weighting, the rate of `heart attack` in diabetes patients is around 7
+times larger than the non-diabetes patients. After matching/weighting, this 
+rate decreases to only 2-3 times larger, which indicates that our 
+matching/weighting significantly reduce the effect of the covariates. 
+**Table 5** also shows similar result. Before matching, the `heart_attack` 
+rate in `relative_heart_attack`, `age`, `bmi`, `blood_press`, `blood_press2`, 
+`hyper_med`, `hbq_med`, `year_smoke` and `year_hyper` are significantly 
+different between diabetes patients and non-diabetes patients. However, 
+after matching, the rates in all corresponding covariates look similar, 
+which is another evidence of the effect of propensity score matching. 
+**Table 3** shows the t test result, which indicates that after matching, 
+the `heart attack` rate in diabetes patients is still higher than 
+the non-diabetes patients.
