@@ -23,21 +23,36 @@ use_python("/opt/anaconda3/bin/python")
 ## About
 
 ### Research Question
-A propensity score is the **conditional probability** that a subject receives "treatment" given the subject’s observed covariates. When estimating treatment effects on a binary outcome, it may happen that the treatments are not randomly assigned to subjects, which is somewhat often the case in observational studies. Propensity scoring aims to mimic what happens in randomized controlled trials by balancing observed covariates between subjects in control and treatment groups.
+A propensity score is the **conditional probability** that a subject receives
+"treatment" given the subject’s observed covariates. When estimating treatment
+effects on a binary outcome, it may happen that the treatments are not randomly
+assigned to subjects, which is somewhat often the case in observational
+studies. Propensity scoring aims to mimic what happens in randomized controlled
+trials by balancing observed covariates between subjects in control and
+treatment groups.
 
-The purpose of this tutorial is to introduce how to perform propensity score analyses. In the following sections we will use the data from the National Health and Nutrition Examination Survey ([NHANES](https://www.cdc.gov/nchs/nhanes/index.htm)). We will use the propensity score as a tool to figure out the following question:
+The purpose of this tutorial is to introduce how to perform propensity score
+analyses. In the following sections we will use the data from the National
+Health and Nutrition Examination Survey
+([NHANES](https://www.cdc.gov/nchs/nhanes/index.htm)). We will use the
+propensity score as a tool to figure out the following question:
 
 > Whether or not adult patients with diabetes have higher risk for heart attack (myocardial infarction) in the United States?
 
 Here’s are the main reasons why we choose this method: 
 
-- This dataset is based on observational data but not experimental and thus has selection bias.
-- There are many confounding variables, such as age, body mass index (BMI), year of smoking etc. Also, among other variables, like race or income that seem to be irrelevant with this question may also have the potential to impact our outcome and be confounding variables.
+- This dataset is based on observational data but not experimental and 
+thus has selection bias.
+- There are many confounding variables, such as age, body mass index (BMI),
+year of smoking etc. Also, among other variables, like race or income that 
+seem to be irrelevant with this question may also have the potential to impact
+our outcome and be confounding variables.
 
 
 ### Data Description
 
-From the [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) dataset, we choose the following variable as the predictors, outcome and treatment.
+From the [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) dataset, 
+we choose the following variable as the predictors, outcome and treatment.
 
 Outcome: `heart_attack`  
 Treatment: `diabetes`  
@@ -67,7 +82,8 @@ Predictors:
 | `cover_hc`              | Covered by health care or not                       |
 | `health_diet`           | Having a health diet or not                         |
 
-**Note:** For all the binary variable here with value 1 and 0, 1 = Yes and 0 = No
+**Note:** For all the binary variable here with value 1 and 0, 
+1 = Yes and 0 = No
 
 
 ## Tutorial Procedure
@@ -820,72 +836,132 @@ Finally, I provides two tables here. The first one is the mean-std pairs of all 
 So now we can answer the question at the beginning: Adult patients with diabetes do have higher risk for heart attack (myocardial infarction) in the United States.
 
 
-### STATA
+### STATA 
 ```{stata s1, collectcode=TRUE}
 import delimited "./data/nhanes.csv", encoding(ISO-8859-1)
 ```
-#### Initial Data Balance:
-This will allow us to determine, which covariates will be useful when calculating the propensity score. 
-* To-Do 
-  + Create Confidence Intervals for all of the variables in order to know which to choose in our final model
-  + create a standardized balance table and compare the means 
-```{stata s2, collectcode=TRUE}
-logit heart_attack relative_heart_attack gender age race edu annual_income weight bmi diabete smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper
+#### Pre-Processing
+##### Covariate Selection
+To accurately balance the covariates, we must look at a few factors
+* The covariates should be correlated to both the treatment and outcome variables
+* If some covariates do not have a statistically significant correlation to the outcome variable, we can choose ones that are correlated to the treatment variable
+  + the covariates only correlated to the outcome variable will not have a large effect on the covariate balance, so we don't need to include them in our program
+  + we should also select covariates that are precursors to our treatment 
+  
+```{stata s2,collectcode=TRUE}
+pwcorr heart_attack diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, sig star(.05)
+```
+ 
+ From this correlation table we can see that relative heart attack, gender, age, edu, annual income, weight, bmi, smoke_life, phy_vigorous, phy_moderate, blood_press, blood_press2, high_chol, meadial_access, cover_hc, health_diet, year_smoke, and year_hyper, all have statistically significant correlations with either the treatment variable or both the treatment and outcome variable. 
+ 
+I have not included the two medications, because they are used to treat the symptoms of diabetes.
+
+##### Initial Data Balance:
+
+We can create a logistic regression model in order to predict the assignment condition -- Has Diabetes == 1 and Does not have Diabetes == 0. We can also run a t-test to determine if the treatment has a statistical difference when compared to the control on our outcome.
+
+```{stata s3,collectcode=TRUE}
+logit heart_attack relative_heart_attack gender age edu annual_income weight bmi diabete smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper
  
 ttest diabete, by(heart_attack)
 ```
 
 #### I. Propensity score estimation:
+First we must calculate our propensity score, to do this we are using the pscore package. 
 
-```{stata s3, collectcode=TRUE, results="hide"}
-pscore diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, pscore(pc_pscore) blockid(pc_block) detail
+```{stata s4,collectcode=TRUE, results="hide"}
+pscore diabete relative_heart_attack gender age edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper, pscore(pc_pscore) blockid(pc_block) detail
+```
+
+We can then graph our unmatched/unweighted covariates.
+```{stata s5,collectcode=TRUE}
 psgraph, treated(diabete)pscore(pc_pscore)
 ```
-
 #### II. Propensity score matching/weighting:
-* To-Do
-  + create graphics 
-  + for matching, I will create a line graph and juxtapose the untreated vs. treated 
-  + for weighting, I will create two density graphs to compare 
+There are many types of matching and weighting strategies that we could use. 
+In this tutorial I will focus on nearest neighbor matching, kernel matching, and Inverse-Probability weighting.
 
 ##### Matching 
-
-```{stata s4, collectcode=TRUE}
-qui psmatch2 diabete, kernel outcome(heart_attack) pscore(pc_pscore)
+This graph shows the propensity score on the treated variable before matching. 
+```{stata s6,collectcode=TRUE}
+twoway (kdensity _pscore if _treated==1) (kdensity _pscore if _treated==0, 
+lpattern(dash)), legend( label( 1 "Diabetes") label( 2 "No Diabetes" ) ) 
+xtitle("Propensity Score Before Matching") saving(before, replace)
+```
+###### Nearest Neighbor Matching
+```{stata s7, collectcode=TRUE}
+psmatch2 diabete, outcome(heart_attack) pscore(pc_pscore) neighbor(1) 
+caliper(.001) common
+```
+###### Balance Checking 
+```{stata s8,collectcode=TRUE}
+gen match=_n1
+replace match=_id if match==.
+duplicates tag match, gen(same_match)
+twoway (kdensity _pscore if _treated==1) 
+(kdensity _pscore if _treated==0 & dup>0, lpattern(dash)), 
+legend( label( 1 "Diabetes") label( 2 "No Diabetes" ) ) 
+xtitle("Propensity Score After Matching") saving(before, replace)
 ```
 
+###### Kernel Matching 
+```{stata s9,collectcode=TRUE}
+psmatch2 diabete, kernel outcome(heart_attack) pscore(pc_pscore)
+```
+
+###### Balance Checking for Kernel Matching
+Instead of using a graph to analyze this matching strategy, we can run pstest right after we match our scores 
+```{stata s10,collectcode=TRUE}
+// run directly after psmatch2
+pstest gender age edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper, both graph
+```
+This graph shows the percent bias after matching.
+
 ##### Inverse Propensity Score Weighting 
-```{stata s5, collectcode=TRUE}
-qui dr heart_attack diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, genvars
+
+```{stata s11,collectcode=TRUE}
+qui dr heart_attack diabete relative_heart_attack 
+gender age edu annual_income weight bmi smoke_life 
+phy_vigorous phy_moderate blood_press blood_press2 high_chol 
+meadial_access cover_hc health_diet year_smoke year_hyper, genvars
 egen sumofweights = total(iptwt)
 gen norm_weights = iptwt/sumofweights
 ```
+Next we can create a balance table for the weighted propensity scores. The standardized difference is the same as the percent bias in pstest
+```{stata s12,collectcode=TRUE}
+pbalchk diabete relative_heart_attack gender age
+ edu annual_income weight bmi smoke_life phy_vigorous 
+ phy_moderate blood_press blood_press2 high_chol meadial_access 
+ cover_hc health_diet year_smoke year_hyper, wt(norm_weights)
+```
+
+###### Balance Checking
+We can then create a graph to see the matching before and after of the covariates, I chose age because in our correlation test it had the strongest correlation. 
+```{stata s13,collectcode=TRUE}
+twoway kdensity age if diabete [aweight= norm_weights] || kdensity 
+age if !diabete [aweight=norm_weights]
+```
 
 #### III. Balance Checking:
-* To-Do 
-  + I will also a linear regression estimation using the teffects ra function 
+By looking at the treatment effects on the treated we will be able to see how the covariates were accuratley able to predict the treatment, and we can also see how the treatment is related to the outcome 
   
-#### Matched Data Balance 
-```{stata s6, collectcode=TRUE}
-psmatch2 diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, out(heart_attack)
- 
-reg heart_attack relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper diabete [fweight = _weight]
- 
-teffects ipw (heart_attack) (diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper)
+#### Treatment Effects on Matched Data
+```{stata s14,collectcode=TRUE}
+teffects psmatch (heart_attack) (diabete smoke_life phy_vigorous 
+phy_moderate blood_press blood_press2 high_chol meadial_access 
+cover_hc health_diet year_smoke year_hyper relative_heart_attack 
+gender age edu annual_income weight bmi), atet
+
+tebalance box
 ```
 
 #### Inverse Weighting Balance
 
-```{stata s7, collectcode=TRUE}
-pbalchk diabete heart_attack diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, wt(norm_weights)
- 
-teffects ipwra (heart_attack relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper) (diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper)
+```{stata s15,collectcode=TRUE}
+teffects ipw (heart_attack) (diabete smoke_life phy_vigorous 
+phy_moderate blood_press blood_press2 high_chol meadial_access 
+cover_hc health_diet year_smoke year_hyper relative_heart_attack 
+gender age edu annual_income weight bmi), atet
+
+tebalance density age 
 ```
-
-#### IV. Comparison between pre_match data and matched data.
-* To-Do  
-  + Create Graphs comparing pre-match data and match data 
-  + Create graphs comparing pre-weighted data to weighted data 
-  + standardized tables for both matched and weighted data to compare to initial data set
-
-

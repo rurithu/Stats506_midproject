@@ -3083,54 +3083,225 @@ So now we can answer the question at the beginning: Adult patients with diabetes
 <pre><code>
 
 . import delimited &quot;./data/nhanes.csv&quot;, encoding(ISO-8859(24 vars, 5,265 obs)</code></pre>
-<div id="initial-data-balance" class="section level4">
-<h4>Initial Data Balance:</h4>
-<p>This will allow us to determine, which covariates will be useful when calculating the propensity score. * To-Do + Create Confidence Intervals for all of the variables in order to know which to choose in our final model + create a standardized balance table and compare the means</p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true"></a><span class="kw">logit</span> heart_attack relative_heart_attack gender age race edu annual_income <span class="kw">weight</span> bmi diabete smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true"></a> </span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true"></a><span class="kw">ttest</span> diabete, <span class="kw">by</span>(heart_attack)</span></code></pre></div>
-<pre><code> . logit heart_attack relative_heart_attack gender age race edu annual_income weight bmi diabete smok
-&gt; e_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_acce
-&gt; ss cover_hc health_diet year_smoke year_hyper
+<div id="pre-processing" class="section level4">
+<h4>Pre-Processing</h4>
+<div id="covariate-selection" class="section level5">
+<h5>Covariate Selection</h5>
+<p>To accurately balance the covariates, we must look at a few factors * The covariates should be correlated to both the treatment and outcome variables * If some covariates do not have a statistically significant correlation to the outcome variable, we can choose ones that are correlated to the treatment variable + the covariates only correlated to the outcome variable will not have a large effect on the covariate balance, so we don’t need to include them in our program + we should also select covariates that are precursors to our treatment</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true"></a><span class="kw">pwcorr</span> heart_attack diabete relative_heart_attack gender age race edu annual_income <span class="kw">weight</span> bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, sig <span class="kw">star</span>(.05)</span></code></pre></div>
+<pre><code> . pwcorr heart_attack diabete relative_heart_attack gender age race edu annual_income weight bmi smo
+&gt; ke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_acc
+&gt; ess cover_hc health_diet year_smoke year_hyper, sig star(.05)
+
+             | heart_~k  diabete relati~k   gender      age     race      edu
+-------------+---------------------------------------------------------------
+heart_attack |   1.0000 
+             |
+             |
+     diabete |   0.1762*  1.0000 
+             |   0.0000
+             |
+relative_h~k |   0.1213*  0.0615*  1.0000 
+             |   0.0000   0.0000
+             |
+      gender |  -0.1001* -0.0567*  0.0408*  1.0000 
+             |   0.0000   0.0000   0.0030
+             |
+         age |   0.1945*  0.2974*  0.0499* -0.0231   1.0000 
+             |   0.0000   0.0000   0.0003   0.0941
+             |
+        race |  -0.0094  -0.0123   0.0082  -0.0074  -0.0001   1.0000 
+             |   0.4930   0.3718   0.5506   0.5931   0.9953
+             |
+         edu |  -0.0528* -0.0866* -0.0213   0.0360* -0.0797*  0.3065*  1.0000 
+             |   0.0001   0.0000   0.1216   0.0090   0.0000   0.0000
+             |
+annual_inc~e |  -0.0794* -0.0538* -0.0828* -0.0232  -0.0826*  0.1020*  0.3293*
+             |   0.0000   0.0001   0.0000   0.0928   0.0000   0.0000   0.0000
+             |
+      weight |  -0.0474* -0.1032*  0.0091   0.0093  -0.1531* -0.1268*  0.1780*
+             |   0.0006   0.0000   0.5103   0.5018   0.0000   0.0000   0.0000
+             |
+         bmi |   0.0103   0.1439*  0.0791*  0.0614* -0.0116  -0.1010* -0.0275*
+             |   0.4546   0.0000   0.0000   0.0000   0.4017   0.0000   0.0458
+             |
+  smoke_life |   0.1121*  0.0708*  0.0767* -0.2194*  0.1258* -0.0325* -0.1244*
+             |   0.0000   0.0000   0.0000   0.0000   0.0000   0.0184   0.0000
+             |
+phy_vigorous |  -0.0223  -0.0669*  0.0541* -0.1794* -0.1692* -0.0785* -0.0529*
+             |   0.1055   0.0000   0.0001   0.0000   0.0000   0.0000   0.0001
+             |
+phy_moderate |  -0.0218  -0.0636*  0.0654* -0.1011* -0.1434* -0.0650*  0.0147 
+             |   0.1136   0.0000   0.0000   0.0000   0.0000   0.0000   0.2861
+             |
+ blood_press |   0.1586*  0.2776*  0.0956* -0.0203   0.4210*  0.0620* -0.0324*
+             |   0.0000   0.0000   0.0000   0.1406   0.0000   0.0000   0.0187
+             |
+blood_press2 |   0.1491*  0.2580*  0.0976* -0.0121   0.3695*  0.0607* -0.0282*
+             |   0.0000   0.0000   0.0000   0.3799   0.0000   0.0000   0.0410
+             |
+   hyper_med |   0.1609*  0.2962*  0.0946* -0.0035   0.4516*  0.0565* -0.0407*
+             |   0.0000   0.0000   0.0000   0.7995   0.0000   0.0000   0.0031
+             |
+     hbq_med |   0.1654*  0.3103*  0.0812*  0.0039   0.4657*  0.0558* -0.0385*
+             |   0.0000   0.0000   0.0000   0.7746   0.0000   0.0001   0.0052
+             |
+   high_chol |   0.1387*  0.2265*  0.0800* -0.0212   0.3799* -0.0257  -0.0093 
+             |   0.0000   0.0000   0.0000   0.1235   0.0000   0.0626   0.5008
+             |
+meadial_ac~s |   0.0616*  0.1231*  0.0545*  0.1287*  0.2691*  0.0458*  0.0732*
+             |   0.0000   0.0000   0.0001   0.0000   0.0000   0.0009   0.0000
+             |
+    cover_hc |   0.0539*  0.0779*  0.0280*  0.0443*  0.2197*  0.1423*  0.1740*
+             |   0.0001   0.0000   0.0420   0.0013   0.0000   0.0000   0.0000
+             |
+ health_diet |  -0.0136  -0.0366* -0.0616* -0.0278*  0.1342*  0.1572*  0.1784*
+             |   0.3222   0.0079   0.0000   0.0437   0.0000   0.0000   0.0000
+             |
+  year_smoke |   0.1740*  0.1560*  0.0613* -0.2126*  0.4186* -0.0176  -0.1214*
+             |   0.0000   0.0000   0.0000   0.0000   0.0000   0.2012   0.0000
+             |
+  year_hyper |   0.1573*  0.2855*  0.0966* -0.0009   0.4120*  0.0558* -0.0322*
+             |   0.0000   0.0000   0.0000   0.9451   0.0000   0.0001   0.0195
+             |
+
+             | annual~e   weight      bmi smoke_~e phy_vi~s phy_mo~e blood_~s
+-------------+---------------------------------------------------------------
+annual_inc~e |   1.0000 
+             |
+             |
+      weight |   0.2397*  1.0000 
+             |   0.0000
+             |
+         bmi |  -0.0430*  0.0024   1.0000 
+             |   0.0018   0.8641
+             |
+  smoke_life |  -0.1600*  0.0040   0.0248   1.0000 
+             |   0.0000   0.7740   0.0721
+             |
+phy_vigorous |  -0.0365*  0.0540*  0.0370*  0.1054*  1.0000 
+             |   0.0081   0.0001   0.0073   0.0000
+             |
+phy_moderate |  -0.0075   0.1148*  0.0565*  0.1061*  0.4676*  1.0000 
+             |   0.5869   0.0000   0.0000   0.0000   0.0000
+             |
+ blood_press |  -0.0667* -0.1003*  0.1767*  0.1076* -0.0468* -0.0473*  1.0000 
+             |   0.0000   0.0000   0.0000   0.0000   0.0007   0.0006
+             |
+blood_press2 |  -0.0479* -0.0835*  0.1761*  0.1001* -0.0589* -0.0368*  0.8488*
+             |   0.0005   0.0000   0.0000   0.0000   0.0000   0.0075   0.0000
+             |
+   hyper_med |  -0.0600* -0.1068*  0.1705*  0.0954* -0.0699* -0.0556*  0.9300*
+             |   0.0000   0.0000   0.0000   0.0000   0.0000   0.0001   0.0000
+             |
+     hbq_med |  -0.0523* -0.1160*  0.1454*  0.0742* -0.0798* -0.0532*  0.8281*
+             |   0.0001   0.0000   0.0000   0.0000   0.0000   0.0001   0.0000
+             |
+   high_chol |  -0.0191  -0.0396*  0.0721*  0.0680* -0.0528* -0.0350*  0.3296*
+             |   0.1653   0.0041   0.0000   0.0000   0.0001   0.0110   0.0000
+             |
+meadial_ac~s |   0.0692*  0.0043   0.0611* -0.0000  -0.0994* -0.0360*  0.1918*
+             |   0.0000   0.7536   0.0000   0.9990   0.0000   0.0089   0.0000
+             |
+    cover_hc |   0.1591*  0.0375*  0.0023  -0.0169  -0.0857* -0.0462*  0.1249*
+             |   0.0000   0.0065   0.8665   0.2195   0.0000   0.0008   0.0000
+             |
+ health_diet |   0.1522*  0.0147  -0.2227* -0.0951* -0.0800* -0.0703* -0.0366*
+             |   0.0000   0.2875   0.0000   0.0000   0.0000   0.0000   0.0080
+             |
+  year_smoke |  -0.1570* -0.0575*  0.0028   0.8381*  0.0029   0.0294*  0.2091*
+             |   0.0000   0.0000   0.8389   0.0000   0.8321   0.0327   0.0000
+             |
+  year_hyper |  -0.0699* -0.0938*  0.1313*  0.0898* -0.0673* -0.0499*  0.6648*
+             |   0.0000   0.0000   0.0000   0.0000   0.0000   0.0003   0.0000
+             |
+
+             | blood_~2 hyper_~d  hbq_med high_c~l meadia~s cover_hc health~t
+-------------+---------------------------------------------------------------
+blood_press2 |   1.0000 
+             |
+             |
+   hyper_med |   0.8315*  1.0000 
+             |   0.0000
+             |
+     hbq_med |   0.7633*  0.8904*  1.0000 
+             |   0.0000   0.0000
+             |
+   high_chol |   0.3096*  0.3430*  0.3451*  1.0000 
+             |   0.0000   0.0000   0.0000
+             |
+meadial_ac~s |   0.1767*  0.2061*  0.2372*  0.1996*  1.0000 
+             |   0.0000   0.0000   0.0000   0.0000
+             |
+    cover_hc |   0.1170*  0.1383*  0.1615*  0.1407*  0.3129*  1.0000 
+             |   0.0000   0.0000   0.0000   0.0000   0.0000
+             |
+ health_diet |  -0.0419* -0.0298* -0.0176  -0.0080   0.0615*  0.1161*  1.0000 
+             |   0.0024   0.0305   0.2027   0.5632   0.0000   0.0000
+             |
+  year_smoke |   0.1860*  0.2094*  0.2028*  0.1726*  0.0945*  0.0675* -0.0230 
+             |   0.0000   0.0000   0.0000   0.0000   0.0000   0.0000   0.0945
+             |
+  year_hyper |   0.6181*  0.6570*  0.6257*  0.2838*  0.1479*  0.1100* -0.0029 
+             |   0.0000   0.0000   0.0000   0.0000   0.0000   0.0000   0.8355
+             |
+
+             | year_s~e year_h~r
+-------------+------------------
+  year_smoke |   1.0000 
+             |
+             |
+  year_hyper |   0.2135*  1.0000 
+             |   0.0000
+             |</code></pre>
+<p>From this correlation table we can see that relative heart attack, gender, age, edu, annual income, weight, bmi, smoke_life, phy_vigorous, phy_moderate, blood_press, blood_press2, high_chol, meadial_access, cover_hc, health_diet, year_smoke, and year_hyper, all have statistically significant correlations with either the treatment variable or both the treatment and outcome variable.</p>
+<p>I have not included the two medications, because they are used to treat the symptoms of diabetes.</p>
+</div>
+<div id="initial-data-balance" class="section level5">
+<h5>Initial Data Balance:</h5>
+<p>We can create a logistic regression model in order to predict the assignment condition – Has Diabetes == 1 and Does not have Diabetes == 0. We can also run a t-test to determine if the treatment has a statistical difference when compared to the control on our outcome.</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true"></a><span class="kw">logit</span> heart_attack relative_heart_attack gender age edu annual_income <span class="kw">weight</span> bmi diabete smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true"></a> </span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true"></a><span class="kw">ttest</span> diabete, <span class="kw">by</span>(heart_attack)</span></code></pre></div>
+<pre><code> . logit heart_attack relative_heart_attack gender age edu annual_income weight bmi diabete smoke_lif
+&gt; e phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet
+&gt;  year_smoke year_hyper
 
 Iteration 0:   log likelihood = -1017.7737  
-Iteration 1:   log likelihood =  -926.0451  
-Iteration 2:   log likelihood = -798.14406  
-Iteration 3:   log likelihood =  -793.1477  
-Iteration 4:   log likelihood =  -793.1077  
-Iteration 5:   log likelihood = -793.10768  
+Iteration 1:   log likelihood = -925.17959  
+Iteration 2:   log likelihood =  -798.4115  
+Iteration 3:   log likelihood = -793.43837  
+Iteration 4:   log likelihood = -793.39978  
+Iteration 5:   log likelihood = -793.39976  
 
 Logistic regression                             Number of obs     =      5,265
-                                                LR chi2(22)       =     449.33
+                                                LR chi2(19)       =     448.75
                                                 Prob &gt; chi2       =     0.0000
-Log likelihood = -793.10768                     Pseudo R2         =     0.2207
+Log likelihood = -793.39976                     Pseudo R2         =     0.2205
 
 ---------------------------------------------------------------------------------------
          heart_attack |      Coef.   Std. Err.      z    P&gt;|z|     [95% Conf. Interval]
 ----------------------+----------------------------------------------------------------
-relative_heart_attack |   1.144215   .1612038     7.10   0.000     .8282613    1.460169
-               gender |  -1.015174   .1585103    -6.40   0.000    -1.325849      -.7045
-                  age |   .0553925   .0079228     6.99   0.000     .0398641    .0709209
-                 race |  -.0245812    .065446    -0.38   0.707    -.1528529    .1036905
-                  edu |  -.0514897   .0587702    -0.88   0.381    -.1666772    .0636979
-        annual_income |  -.0520248   .0190598    -2.73   0.006    -.0893813   -.0146683
-               weight |  -1.05e-08   1.79e-06    -0.01   0.995    -3.51e-06    3.49e-06
-                  bmi |  -.0057416   .0110208    -0.52   0.602    -.0273419    .0158588
-              diabete |   .7270702   .1505268     4.83   0.000     .4320431    1.022097
-           smoke_life |   1.147444   .3928784     2.92   0.003     .3774168    1.917472
-         phy_vigorous |  -.1321371   .2003034    -0.66   0.509    -.5247245    .2604503
-         phy_moderate |   -.077135   .1626612    -0.47   0.635    -.3959451     .241675
-          blood_press |   .5898994   .4142232     1.42   0.154    -.2219631    1.401762
-         blood_press2 |   .1803232   .2322923     0.78   0.438    -.2749613    .6356076
-            hyper_med |   -.310442   .4711858    -0.66   0.510    -1.233949    .6130651
-              hbq_med |   .1432893   .3113206     0.46   0.645     -.466888    .7534665
-            high_chol |   .4464656   .1497225     2.98   0.003     .1530149    .7399164
-       meadial_access |   .0881442   .2602765     0.34   0.735    -.4219884    .5982767
-             cover_hc |    .243126   .2852381     0.85   0.394    -.3159304    .8021824
-          health_diet |  -.0773705   .0701464    -1.10   0.270    -.2148549     .060114
-           year_smoke |  -.0124285   .0077302    -1.61   0.108    -.0275794    .0027223
-           year_hyper |   -.000993   .0066006    -0.15   0.880      -.01393    .0119439
-                _cons |   -5.43481   .7585232    -7.16   0.000    -6.921488   -3.948131
+relative_heart_attack |   1.137611   .1607593     7.08   0.000     .8225289    1.452694
+               gender |  -1.016776   .1583173    -6.42   0.000    -1.327073   -.7064802
+                  age |   .0555569   .0078364     7.09   0.000     .0401979    .0709159
+                  edu |  -.0556267   .0570061    -0.98   0.329    -.1673566    .0561031
+        annual_income |  -.0524604   .0190034    -2.76   0.006    -.0897064   -.0152144
+               weight |   6.55e-08   1.77e-06     0.04   0.970    -3.40e-06    3.53e-06
+                  bmi |  -.0052411    .010917    -0.48   0.631     -.026638    .0161558
+              diabete |   .7284327   .1500686     4.85   0.000     .4343037    1.022562
+           smoke_life |   1.139178   .3926328     2.90   0.004     .3696317    1.908724
+         phy_vigorous |  -.1304839   .2001312    -0.65   0.514    -.5227339     .261766
+         phy_moderate |  -.0722899   .1623334    -0.45   0.656    -.3904576    .2458778
+          blood_press |   .4264277    .257415     1.66   0.098    -.0780965    .9309519
+         blood_press2 |   .1644578   .2284003     0.72   0.471    -.2831986    .6121141
+            high_chol |   .4486131   .1493245     3.00   0.003     .1559424    .7412837
+       meadial_access |   .0947609   .2579801     0.37   0.713    -.4108708    .6003926
+             cover_hc |    .237349    .284457     0.83   0.404    -.3201764    .7948744
+          health_diet |  -.0803114   .0697759    -1.15   0.250    -.2170696    .0564469
+           year_smoke |  -.0123001   .0077231    -1.59   0.111    -.0274371    .0028369
+           year_hyper |  -.0011022   .0065776    -0.17   0.867    -.0139941    .0117898
+                _cons |  -5.514513   .7195184    -7.66   0.000    -6.924743   -4.104283
 ---------------------------------------------------------------------------------------
 
 .  
@@ -3153,108 +3324,54 @@ Ho: diff = 0                                     degrees of freedom =     5263
     Ha: diff &lt; 0                 Ha: diff != 0                 Ha: diff &gt; 0
  Pr(T &lt; t) = 0.0000         Pr(|T| &gt; |t|) = 0.0000          Pr(T &gt; t) = 1.0000</code></pre>
 </div>
+</div>
 <div id="i.-propensity-score-estimation" class="section level4">
 <h4>I. Propensity score estimation:</h4>
-<div class="sourceCode" id="cb31"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true"></a>pscore diabete relative_heart_attack gender age race edu annual_income <span class="kw">weight</span> bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, pscore(pc_pscore) blockid(pc_block) <span class="kw">detail</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true"></a>psgraph, treated(diabete)pscore(pc_pscore)</span></code></pre></div>
+<p>First we must calculate our propensity score, to do this we are using the pscore package.</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true"></a>pscore diabete relative_heart_attack gender age edu annual_income <span class="kw">weight</span> bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper, pscore(pc_pscore) blockid(pc_block) <span class="kw">detail</span></span></code></pre></div>
+<p>We can then graph our unmatched/unweighted covariates.</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true"></a>psgraph, treated(diabete)pscore(pc_pscore)</span></code></pre></div>
+<pre><code> The balancing property is not satisfied 
+Try a different specification of the propensity score 
+
+
+. psgraph, treated(diabete)pscore(pc_pscore)</code></pre>
 </div>
 <div id="ii.-propensity-score-matchingweighting" class="section level4">
 <h4>II. Propensity score matching/weighting:</h4>
-<ul>
-<li>To-Do
-<ul>
-<li>create graphics</li>
-<li>for matching, I will create a line graph and juxtapose the untreated vs. treated</li>
-<li>for weighting, I will create two density graphs to compare</li>
-</ul></li>
-</ul>
+<p>There are many types of matching and weighting strategies that we could use. In this tutorial I will focus on nearest neighbor matching, kernel matching, and Inverse-Probability weighting.</p>
 <div id="matching" class="section level5">
 <h5>Matching</h5>
-<div class="sourceCode" id="cb32"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true"></a><span class="kw">qui</span> psmatch2 diabete, kernel outcome(heart_attack) pscore(pc_pscore)</span></code></pre></div>
+<p>This graph shows the propensity score on the treated variable before matching.</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true"></a><span class="kw">twoway</span> (<span class="kw">kdensity</span> _pscore <span class="kw">if</span> _treated==1) (<span class="kw">kdensity</span> _pscore <span class="kw">if</span> _treated==0, </span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true"></a>lpattern(<span class="kw">dash</span>)), <span class="bn">legend</span>( <span class="kw">label</span>( 1 <span class="st">&quot;Diabetes&quot;</span>) <span class="kw">label</span>( 2 <span class="st">&quot;No Diabetes&quot;</span> ) ) </span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true"></a><span class="bn">xtitle</span>(<span class="st">&quot;Propensity Score Before Matching&quot;</span>) <span class="kw">saving</span>(before, <span class="kw">replace</span>)</span></code></pre></div>
 <pre><code> The balancing property is not satisfied 
 Try a different specification of the propensity score 
 
 
-. qui psmatch2 diabete, kernel outcome(heart_attack) pscore(pc_pscore)</code></pre>
-</div>
-<div id="inverse-propensity-score-weighting" class="section level5">
-<h5>Inverse Propensity Score Weighting</h5>
-<div class="sourceCode" id="cb34"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true"></a><span class="kw">qui</span> dr heart_attack diabete relative_heart_attack gender age race edu annual_income <span class="kw">weight</span> bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, genvars</span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true"></a><span class="kw">egen</span> sumofweights = <span class="kw">total</span>(iptwt)</span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true"></a><span class="kw">gen</span> norm_weights = iptwt/sumofweights</span></code></pre></div>
+. twoway (kdensity _pscore if _treated==1) (kdensity _pscore if _treated==0, 
+parentheses do not balance
+r(198);
+
+end of do-file
+r(198);</code></pre>
+<div id="nearest-neighbor-matching" class="section level6">
+<h6>Nearest Neighbor Matching</h6>
+<div class="sourceCode" id="cb38"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true"></a>psmatch2 diabete, outcome(heart_attack) pscore(pc_pscore) neighbor(1) </span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true"></a>caliper(.001) common</span></code></pre></div>
 <pre><code> The balancing property is not satisfied 
 Try a different specification of the propensity score 
+parentheses do not balance
+r(198);
 
 
-. qui dr heart_attack diabete relative_heart_attack gender age race edu annual_income weight bmi smo
-&gt; ke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_acc
-&gt; ess cover_hc health_diet year_smoke year_hyper, genvars
-
-. egen sumofweights = total(iptwt)
-
-. gen norm_weights = iptwt/sumofweights</code></pre>
-</div>
-</div>
-<div id="iii.-balance-checking" class="section level4">
-<h4>III. Balance Checking:</h4>
-<ul>
-<li>To-Do
-<ul>
-<li>I will also a linear regression estimation using the teffects ra function</li>
-</ul></li>
-</ul>
-</div>
-<div id="matched-data-balance" class="section level4">
-<h4>Matched Data Balance</h4>
-<div class="sourceCode" id="cb36"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true"></a>psmatch2 diabete relative_heart_attack gender age race edu annual_income <span class="kw">weight</span> bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, out(heart_attack)</span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true"></a> </span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true"></a><span class="kw">reg</span> heart_attack relative_heart_attack gender age race edu annual_income <span class="kw">weight</span> bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper diabete [<span class="kw">fweight</span> = _weight]</span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true"></a> </span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true"></a>teffects ipw (heart_attack) (diabete relative_heart_attack gender age race edu annual_income <span class="kw">weight</span> bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper)</span></code></pre></div>
-<pre><code> The balancing property is not satisfied 
-Try a different specification of the propensity score 
-
-
-. psmatch2 diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy
-&gt; _vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_h
-&gt; c health_diet year_smoke year_hyper, out(heart_attack)
-
-Probit regression                               Number of obs     =      5,265
-                                                LR chi2(21)       =     916.12
-                                                Prob &gt; chi2       =     0.0000
-Log likelihood = -1846.1611                     Pseudo R2         =     0.1988
-
----------------------------------------------------------------------------------------
-              diabete |      Coef.   Std. Err.      z    P&gt;|z|     [95% Conf. Interval]
-----------------------+----------------------------------------------------------------
-relative_heart_attack |   .1406185   .0658019     2.14   0.033     .0116492    .2695879
-               gender |  -.2625955   .0497383    -5.28   0.000    -.3600809   -.1651102
-                  age |   .0221075   .0021646    10.21   0.000     .0178651      .02635
-                 race |   .0006735    .020754     0.03   0.974    -.0400036    .0413505
-                  edu |  -.0699683   .0204679    -3.42   0.001    -.1100847   -.0298519
-        annual_income |   .0055832   .0062118     0.90   0.369    -.0065918    .0177582
-               weight |  -2.15e-06   5.99e-07    -3.59   0.000    -3.32e-06   -9.78e-07
-                  bmi |   .0299377   .0033052     9.06   0.000     .0234597    .0364157
-           smoke_life |   .1389802   .1180376     1.18   0.239    -.0923692    .3703296
-         phy_vigorous |  -.1067731   .0677548    -1.58   0.115    -.2395701    .0260238
-         phy_moderate |  -.1062689   .0551482    -1.93   0.054    -.2143574    .0018197
-          blood_press |  -.0959416   .1578629    -0.61   0.543    -.4053472    .2134641
-         blood_press2 |   .0023603    .084464     0.03   0.978     -.163186    .1679067
-            hyper_med |    .169898    .175797     0.97   0.334    -.1746579    .5144538
-              hbq_med |    .276376   .1058801     2.61   0.009     .0688549    .4838971
-            high_chol |   .2792716   .0497349     5.62   0.000     .1817929    .3767503
-       meadial_access |   .1828178   .0784583     2.33   0.020     .0290425    .3365932
-             cover_hc |  -.0046901   .0794094    -0.06   0.953    -.1603297    .1509495
-          health_diet |  -.0559004   .0245533    -2.28   0.023     -.104024   -.0077768
-           year_smoke |   -.002941   .0026302    -1.12   0.263    -.0080962    .0022141
-           year_hyper |   .0085186   .0026863     3.17   0.002     .0032536    .0137836
-                _cons |  -2.839558   .2152353   -13.19   0.000    -3.261412   -2.417705
----------------------------------------------------------------------------------------
+. psmatch2 diabete, outcome(heart_attack) pscore(pc_pscore) neighbor(1) 
 ----------------------------------------------------------------------------------------
         Variable     Sample |    Treated     Controls   Difference         S.E.   T-stat
 ----------------------------+-----------------------------------------------------------
     heart_attack  Unmatched | .135167464   .031835629   .103331835   .007955262    12.99
-                        ATT | .135167464   .062200957   .072966507   .015977115     4.57
+                        ATT | .135167464   .080143541   .055023923    .01707134     3.22
 ----------------------------+-----------------------------------------------------------
 Note: S.E. does not take into account that the propensity score is estimated.
 
@@ -3268,149 +3385,200 @@ assignment | On suppor |     Total
 -----------+-----------+----------
      Total |     5,265 |     5,265 
 
-.  
-. reg heart_attack relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy
-&gt; _vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_h
-&gt; c health_diet year_smoke year_hyper diabete [fweight = _weight]
+. caliper(.001) common
+command caliper is unrecognized
+r(199);
 
-      Source |       SS           df       MS      Number of obs   =     1,672
--------------+----------------------------------   F(22, 1649)     =      6.32
-       Model |  11.5583011        22  .525377324   Prob &gt; F        =    0.0000
-    Residual |  137.158804     1,649  .083176958   R-squared       =    0.0777
--------------+----------------------------------   Adj R-squared   =    0.0654
-       Total |  148.717105     1,671  .088998866   Root MSE        =     .2884
-
----------------------------------------------------------------------------------------
-         heart_attack |      Coef.   Std. Err.      t    P&gt;|t|     [95% Conf. Interval]
-----------------------+----------------------------------------------------------------
-relative_heart_attack |   .0992902   .0192084     5.17   0.000     .0616147    .1369656
-               gender |  -.0851514   .0151515    -5.62   0.000    -.1148697   -.0554332
-                  age |   .0019247   .0007573     2.54   0.011     .0004393    .0034102
-                 race |    .003325   .0063613     0.52   0.601     -.009152     .015802
-                  edu |  -.0057296    .006048    -0.95   0.344    -.0175922     .006133
-        annual_income |  -.0028397   .0018638    -1.52   0.128    -.0064953    .0008159
-               weight |   2.48e-07   2.04e-07     1.21   0.225    -1.53e-07    6.49e-07
-                  bmi |   .0004722   .0009499     0.50   0.619     -.001391    .0023355
-           smoke_life |   .0161872   .0413165     0.39   0.695     -.064851    .0972255
-         phy_vigorous |  -.0110083   .0212588    -0.52   0.605    -.0527053    .0306887
-         phy_moderate |  -.0187009   .0165963    -1.13   0.260     -.051253    .0138512
-          blood_press |   .0449275   .0580508     0.77   0.439    -.0689335    .1587886
-         blood_press2 |   .0170577   .0235742     0.72   0.469    -.0291807    .0632961
-            hyper_med |  -.0352533    .063487    -0.56   0.579     -.159777    .0892703
-              hbq_med |   .0269996   .0334593     0.81   0.420    -.0386276    .0926268
-            high_chol |    .012852   .0150088     0.86   0.392    -.0165863    .0422902
-       meadial_access |  -.0132597   .0273224    -0.49   0.628    -.0668499    .0403306
-             cover_hc |   .0065588   .0270563     0.24   0.808    -.0465095     .059627
-          health_diet |  -.0026023   .0073755    -0.35   0.724    -.0170687     .011864
-           year_smoke |   .0001153   .0008568     0.13   0.893    -.0015652    .0017958
-           year_hyper |   .0004355   .0006902     0.63   0.528    -.0009183    .0017893
-              diabete |   .0732662   .0141507     5.18   0.000     .0455109    .1010215
-                _cons |   .0168797   .0730265     0.23   0.817    -.1263547     .160114
----------------------------------------------------------------------------------------
-
-.  
-. teffects ipw (heart_attack) (diabete relative_heart_attack gender age race edu annual_income weigh
-&gt; t bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol me
-&gt; adial_access cover_hc health_diet year_smoke year_hyper)
-
-Iteration 0:   EE criterion =  1.424e-22  
-Iteration 1:   EE criterion =  5.227e-33  
-
-Treatment-effects estimation                    Number of obs     =      5,265
-Estimator      : inverse-probability weights
-Outcome model  : weighted mean
-Treatment model: logit
----------------------------------------------------------------------------------------
-                      |               Robust
-         heart_attack |      Coef.   Std. Err.      z    P&gt;|z|     [95% Conf. Interval]
-----------------------+----------------------------------------------------------------
-ATE                   |
-              diabete |
-            (1 vs 0)  |   .0353091   .0084995     4.15   0.000     .0186504    .0519677
-----------------------+----------------------------------------------------------------
-POmean                |
-              diabete |
-                   0  |   .0394287   .0033122    11.90   0.000     .0329369    .0459206
----------------------------------------------------------------------------------------</code></pre>
+end of do-file
+r(199);</code></pre>
 </div>
-<div id="inverse-weighting-balance" class="section level4">
-<h4>Inverse Weighting Balance</h4>
-<div class="sourceCode" id="cb38"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true"></a>pbalchk diabete heart_attack diabete relative_heart_attack gender age race edu annual_income <span class="kw">weight</span> bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, wt(norm_weights)</span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true"></a> </span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true"></a>teffects ipwra (heart_attack relative_heart_attack gender age race edu annual_income <span class="kw">weight</span> bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper) (diabete relative_heart_attack gender age race edu annual_income <span class="kw">weight</span> bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper)</span></code></pre></div>
+<div id="balance-checking-1" class="section level6">
+<h6>Balance Checking</h6>
+<div class="sourceCode" id="cb40"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true"></a><span class="kw">gen</span> <span class="fu">match</span>=_n1</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true"></a><span class="kw">replace</span> <span class="fu">match</span>=_id <span class="kw">if</span> <span class="fu">match</span>==.</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true"></a><span class="kw">duplicates</span> <span class="fu">tag</span> <span class="fu">match</span>, <span class="kw">gen</span>(same_match)</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true"></a><span class="kw">twoway</span> (<span class="kw">kdensity</span> _pscore <span class="kw">if</span> _treated==1) </span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true"></a>(<span class="kw">kdensity</span> _pscore <span class="kw">if</span> _treated==0 &amp; dup&gt;0, lpattern(<span class="kw">dash</span>)), </span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true"></a><span class="bn">legend</span>( <span class="kw">label</span>( 1 <span class="st">&quot;Diabetes&quot;</span>) <span class="kw">label</span>( 2 <span class="st">&quot;No Diabetes&quot;</span> ) ) </span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true"></a><span class="bn">xtitle</span>(<span class="st">&quot;Propensity Score After Matching&quot;</span>) <span class="kw">saving</span>(before, <span class="kw">replace</span>)</span></code></pre></div>
 <pre><code> The balancing property is not satisfied 
 Try a different specification of the propensity score 
+parentheses do not balance
+r(198);
 
 
-. pbalchk diabete heart_attack diabete relative_heart_attack gender age race edu annual_income weigh
-&gt; t bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol me
-&gt; adial_access cover_hc health_diet year_smoke year_hyper, wt(norm_weights)
+. gen match=_n1
+_n1 not found
+r(111);
+
+end of do-file
+r(111);</code></pre>
+</div>
+<div id="kernel-matching" class="section level6">
+<h6>Kernel Matching</h6>
+<div class="sourceCode" id="cb42"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true"></a>psmatch2 diabete, kernel outcome(heart_attack) pscore(pc_pscore)</span></code></pre></div>
+<pre><code> The balancing property is not satisfied 
+Try a different specification of the propensity score 
+parentheses do not balance
+r(198);
+
+
+. psmatch2 diabete, kernel outcome(heart_attack) pscore(pc_pscore)
+----------------------------------------------------------------------------------------
+        Variable     Sample |    Treated     Controls   Difference         S.E.   T-stat
+----------------------------+-----------------------------------------------------------
+    heart_attack  Unmatched | .135167464   .031835629   .103331835   .007955262    12.99
+                        ATT | .135329341   .075988699   .059340642    .01261764     4.70
+----------------------------+-----------------------------------------------------------
+Note: S.E. does not take into account that the propensity score is estimated.
+
+ psmatch2: |   psmatch2: Common
+ Treatment |        support
+assignment | Off suppo  On suppor |     Total
+-----------+----------------------+----------
+ Untreated |         0      4,429 |     4,429 
+   Treated |         1        835 |       836 
+-----------+----------------------+----------
+     Total |         1      5,264 |     5,265 </code></pre>
+</div>
+<div id="balance-checking-for-kernel-matching" class="section level6">
+<h6>Balance Checking for Kernel Matching</h6>
+<p>Instead of using a graph to analyze this matching strategy, we can run pstest right after we match our scores</p>
+<div class="sourceCode" id="cb44"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true"></a><span class="co">// run directly after psmatch2</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true"></a>pstest gender age edu annual_income <span class="kw">weight</span> bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper, both <span class="kw">graph</span></span></code></pre></div>
+<pre><code> The balancing property is not satisfied 
+Try a different specification of the propensity score 
+parentheses do not balance
+r(198);
+
+
+. // run directly after psmatch2
+. pstest gender age edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press bl
+&gt; ood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper, both graph
+Error: provide treatment indicator variable
+r(198);
+
+end of do-file
+r(198);</code></pre>
+<p>This graph shows the percent bias after matching.</p>
+</div>
+</div>
+<div id="inverse-propensity-score-weighting" class="section level5">
+<h5>Inverse Propensity Score Weighting</h5>
+<div class="sourceCode" id="cb46"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true"></a><span class="kw">qui</span> dr heart_attack diabete relative_heart_attack </span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true"></a>gender age edu annual_income <span class="kw">weight</span> bmi smoke_life </span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true"></a>phy_vigorous phy_moderate blood_press blood_press2 high_chol </span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true"></a>meadial_access cover_hc health_diet year_smoke year_hyper, genvars</span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true"></a><span class="kw">egen</span> sumofweights = <span class="kw">total</span>(iptwt)</span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true"></a><span class="kw">gen</span> norm_weights = iptwt/sumofweights</span></code></pre></div>
+<pre><code> The balancing property is not satisfied 
+Try a different specification of the propensity score 
+parentheses do not balance
+r(198);
+
+
+. qui dr heart_attack diabete relative_heart_attack 
+
+. gender age edu annual_income weight bmi smoke_life 
+command gender is unrecognized
+r(199);
+
+end of do-file
+r(199);</code></pre>
+<p>Next we can create a balance table for the weighted propensity scores. The standardized difference is the same as the percent bias in pstest</p>
+<div class="sourceCode" id="cb48"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true"></a>pbalchk diabete relative_heart_attack gender age</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true"></a> edu annual_income <span class="kw">weight</span> bmi smoke_life phy_vigorous </span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true"></a> phy_moderate blood_press blood_press2 high_chol meadial_access </span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true"></a> cover_hc health_diet year_smoke year_hyper, wt(norm_weights)</span></code></pre></div>
+<pre><code> The balancing property is not satisfied 
+Try a different specification of the propensity score 
+parentheses do not balance
+r(198);
+
+
+. pbalchk diabete relative_heart_attack gender age
 
                Mean in treated   Mean in Untreated   Standardised diff.
 ----------------------------------------------------------------------
-heart_attack |            0.07               0.04                0.130
-     diabete |            1.00               0.00                    .
-relative_h~k |            0.14               0.13                0.033
-      gender |            1.57               1.52                0.099
-         age |           54.28              51.56                0.180
-        race |            3.25               3.27               -0.012
-         edu |            3.52               3.53               -0.007
-annual_inc~e |            8.78               8.91               -0.032
-      weight |        41403.37           42802.32               -0.031
-         bmi |           29.91              29.80                0.014
-  smoke_life |            0.39               0.42               -0.058
-phy_vigorous |            0.20               0.24               -0.096
-phy_moderate |            0.39               0.42               -0.052
- blood_press |            0.41               0.38                0.058
-blood_press2 |            0.33               0.31                0.045
-   hyper_med |            0.39               0.35                0.080
-     hbq_med |            0.33               0.30                0.063
-   high_chol |            0.38               0.35                0.058
-meadial_ac~s |            0.82               0.81                0.034
-    cover_hc |            0.86               0.85                0.026
- health_diet |            2.00               1.96                0.041
-  year_smoke |           15.01              15.06               -0.002
-  year_hyper |            5.59               5.11                0.044
+relative_h~k |            0.17               0.12                0.159
+      gender |            1.45               1.53               -0.156
+         age |           63.52              49.12                0.950
 ----------------------------------------------------------------------
 
 
-.  
-. teffects ipwra (heart_attack relative_heart_attack gender age race edu annual_income weight bmi sm
-&gt; oke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_ac
-&gt; cess cover_hc health_diet year_smoke year_hyper) (diabete relative_heart_attack gender age race ed
-&gt; u annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med
-&gt;  hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper)
+.  edu annual_income weight bmi smoke_life phy_vigorous 
+command edu is unrecognized
+r(199);
 
-Iteration 0:   EE criterion =  1.424e-22  
-Iteration 1:   EE criterion =  5.513e-33  
+end of do-file
+r(199);</code></pre>
+<div id="balance-checking-2" class="section level6">
+<h6>Balance Checking</h6>
+<p>We can then create a graph to see the matching before and after of the covariates, I chose age because in our correlation test it had the strongest correlation.</p>
+<div class="sourceCode" id="cb50"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true"></a><span class="kw">twoway</span> <span class="kw">kdensity</span> age <span class="kw">if</span> diabete [<span class="kw">aweight</span>= norm_weights] || <span class="kw">kdensity</span> </span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true"></a>age <span class="kw">if</span> !diabete [<span class="kw">aweight</span>=norm_weights]</span></code></pre></div>
+<pre><code> The balancing property is not satisfied 
+Try a different specification of the propensity score 
+parentheses do not balance
+r(198);
 
-Treatment-effects estimation                    Number of obs     =      5,265
-Estimator      : IPW regression adjustment
-Outcome model  : linear
-Treatment model: logit
----------------------------------------------------------------------------------------
-                      |               Robust
-         heart_attack |      Coef.   Std. Err.      z    P&gt;|z|     [95% Conf. Interval]
-----------------------+----------------------------------------------------------------
-ATE                   |
-              diabete |
-            (1 vs 0)  |   .0302173   .0085881     3.52   0.000     .0133849    .0470497
-----------------------+----------------------------------------------------------------
-POmean                |
-              diabete |
-                   0  |   .0392485   .0032913    11.92   0.000     .0327976    .0456994
----------------------------------------------------------------------------------------</code></pre>
+
+. twoway kdensity age if diabete [aweight= norm_weights] || kdensity 
+norm_weights not found
+r(111);
+
+end of do-file
+r(111);</code></pre>
 </div>
-<div id="iv.-comparison-between-pre_match-data-and-matched-data." class="section level4">
-<h4>IV. Comparison between pre_match data and matched data.</h4>
-<ul>
-<li>To-Do
-<ul>
-<li>Create Graphs comparing pre-match data and match data</li>
-<li>Create graphs comparing pre-weighted data to weighted data</li>
-<li>standardized tables for both matched and weighted data to compare to initial data set</li>
-</ul></li>
-</ul>
+</div>
+</div>
+<div id="iii.-balance-checking" class="section level4">
+<h4>III. Balance Checking:</h4>
+<p>By looking at the treatment effects on the treated we will be able to see how the covariates were accuratley able to predict the treatment, and we can also see how the treatment is related to the outcome</p>
+</div>
+<div id="treatment-effects-on-matched-data" class="section level4">
+<h4>Treatment Effects on Matched Data</h4>
+<div class="sourceCode" id="cb52"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true"></a>teffects psmatch (heart_attack) (diabete smoke_life phy_vigorous </span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true"></a>phy_moderate blood_press blood_press2 high_chol meadial_access </span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true"></a>cover_hc health_diet year_smoke year_hyper relative_heart_attack </span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true"></a>gender age edu annual_income <span class="kw">weight</span> bmi), atet</span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true"></a></span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true"></a>tebalance box</span></code></pre></div>
+<pre><code> The balancing property is not satisfied 
+Try a different specification of the propensity score 
+parentheses do not balance
+r(198);
+
+
+. teffects psmatch (heart_attack) (diabete smoke_life phy_vigorous 
+invalid teffects psmatch specification: unmatched open parenthesis or bracket
+
+r(198);
+
+end of do-file
+r(198);</code></pre>
+</div>
+<div id="inverse-weighting-balance" class="section level4">
+<h4>Inverse Weighting Balance</h4>
+<div class="sourceCode" id="cb54"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true"></a>teffects ipw (heart_attack) (diabete smoke_life phy_vigorous </span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true"></a>phy_moderate blood_press blood_press2 high_chol meadial_access </span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true"></a>cover_hc health_diet year_smoke year_hyper relative_heart_attack </span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true"></a>gender age edu annual_income <span class="kw">weight</span> bmi), atet</span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true"></a></span>
+<span id="cb54-6"><a href="#cb54-6" aria-hidden="true"></a>tebalance density age </span></code></pre></div>
+<pre><code> The balancing property is not satisfied 
+Try a different specification of the propensity score 
+parentheses do not balance
+r(198);
+
+
+. teffects ipw (heart_attack) (diabete smoke_life phy_vigorous 
+invalid something: unmatched open parenthesis or bracket
+
+r(198);
+
+end of do-file
+r(198);</code></pre>
 </div>
 </div>
 </div>
