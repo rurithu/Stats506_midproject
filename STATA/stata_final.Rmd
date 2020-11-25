@@ -1,0 +1,152 @@
+title: "STATA_group_proj"
+author: "Rithu Uppalapati"
+date: "11/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### STATA
+```{r}
+#devtools::install_github("Hemken/Statamarkdown")
+library(Statamarkdown)
+```
+
+```{stata}
+import delimited "/Users/rithuuppalapati/Desktop/nhanes.csv", encoding(ISO-8859-1)
+```
+#### Pre-Processing
+##### Packages 
+In this tutorial we are using:
+* `pscore` package - used to calculate the pscore
+* `psmatch2` package - used to match the propensity scores 
+* `st0149` package - used to create weights the propensity scores
+* `pbalchk` package - used to analyze the weighted propensity scores
+*  also using the `teffects` function which is included in STATA
+
+```{stata}
+net install st0026_2, replace
+net install psmatch2, replace
+net install st0149, replace 
+net install pbalchk, replace 
+```
+##### Covariate Selection
+To accurately balance the covariates, we must look at a few factors
+* The covariates should be correlated to both the treatment and outcome variables
+* If some covariates do not have a statistically significant correlation to the outcome variable, we can choose ones that are correlated to the treatment variable
+  + the covariates only correlated to the outcome variable will not have a large effect on the covariate balance, so we don't need to include them in our program
+  + we should also select covariates that are precursors to our treatment 
+  
+```{stata}
+pwcorr heart_attack diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, sig star(.05)
+```
+ 
+ From this correlation table we can see that all variables except `age` have statistically significant correlations with either the treatment variable or both the treatment and outcome variable. 
+ 
+Even though the two medications (`hyper_med`, `hbq_med`)are significant, I have not included them because they are used to treat the symptoms of diabetes.
+
+##### Initial Data Balance:
+
+We can create a logistic regression model in order to predict the assignment condition -- Has Diabetes == 1 and Does not have Diabetes == 0. We can also run a t-test to determine if the treatment has a statistical difference when compared to the control on our outcome.
+
+```{stata}
+logit heart_attack relative_heart_attack gender age edu annual_income weight bmi diabete smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper
+ 
+ttest diabete, by(heart_attack)
+```
+
+#### I. Propensity score estimation:
+First we must calculate our propensity score, which balances measured confounders. To do this we are using the pscore package. 
+
+```{stata}
+pscore diabete relative_heart_attack gender age edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper, pscore(pc_pscore) blockid(pc_block) detail
+```
+Adding the function detail will allow us to make sure that the covariates are balanced across both the treatment and control groups.
+
+We can then graph our unmatched/unweighted covariates, which will show us the distribution across the two groups.
+**insert pre-matched propensity score.png here**
+
+
+#### II. Propensity score matching/weighting:
+There are many types of matching and weighting strategies that we could use. 
+In this tutorial I will focus on nearest neighbor matching, kernel matching, and Inverse-Probability weighting.
+
+##### Matching 
+This graph shows the propensity score on the treated variable before matching. 
+**insert propensity score b4 match.png**
+
+To match the sample by the propensity score we will be using the `psmatch2` package for both nearest neighbor and kernel matching.
+
+###### Nearest Neighbor Matching
+* Nearest neighbor matching chooses the best control match for each individual point in the sample.
+* The downside to this matching is that it needs a very large non-treatment group to perform better, and because our non-treatment group is not that large, this is not the most ideal method.
+```{stata}
+#match by nearest neighbors
+psmatch2 diabete, outcome(heart_attack) pscore(pc_pscore) neighbor(1) 
+caliper(.001) common
+```
+###### Balance Checking for Nearest Neighbor
+We can create a density graph to compare to figure 1a. to see if the covariates across both groups are balanced after matching.
+**insert propensity score after match.png**
+
+
+###### Kernel Matching 
+This combines both weighting and matching, where a larger weight is given to the controls that are more similar to the treated.
+```{stata}
+psmatch2 diabete, kernel outcome(heart_attack) pscore(pc_pscore)
+```
+
+###### Balance Checking for Kernel Matching
+Instead of using a graph to analyze this matching strategy, we can run pstest right after we match our scores. 
+The ptest will give us standardized differences between the means of the matched and unmatched, and also give us insight into the bias reduction, which we can see in the graph.
+**insert propscoreBias.png**
+This graph shows the percent bias change after matching.
+
+##### Inverse Propensity Score Weighting 
+In inverse weighting each treated individual is given a weight of $1/pscore$, and each control individual is given a weight of $1/(1-pscore)$
+The weights are then normalized to one and we can get an average treatment effect for the sample.
+```{stata}
+#inverse weighting 
+qui dr heart_attack diabete relative_heart_attack gender age edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper, genvars
+#normalize weights
+egen sumofweights = total(iptwt)
+gen norm_weights = iptwt/sumofweights
+```
+Next we can create a balance table for the weighted propensity scores using the `pbalchk` package. The standardized difference gives us an estimate into how much our bias is changed. 
+```{stata}
+pbalchk diabete relative_heart_attack gender age edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper, wt(norm_weights)
+```
+
+###### Balance Checking
+We can then create a graph to see the matching before and after of the covariates, I chose age because in our correlation test it had the strongest correlation, and in the balance table it had the greatest positive standardized difference. 
+**insert age inverse weight.png**
+We can see the density functions show that there is balance across both groups.
+
+#### III. Treatment Effects:
+The treatment effect models allow us to see "causal effects" for observational data.
+The treatment effects reweight the data to model an experimental design to get randomized results, which hopefully lead to covariate balance
+  
+#### Treatment Effects on Matched Data
+```{stata}
+#propensity score matching
+teffects psmatch (heart_attack) (diabete smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper relative_heart_attack gender age edu annual_income weight bmi), atet
+#summary
+tebalance summarize
+```
+The summary table for `teffects psmatch` will show the he average treatment effect from the propensity score matching estimator as the mean of the differences between the observed and potential results. We can visualize this with a boxplot.
+**insert balance plots for teffects.png**
+The summary table will report the difference between the means and the ratio of variances for each covariate. If the covariates are balanced, then the ratio of variances should be approximately equal to one. 
+
+#### Inverse Weighting Balance
+
+```{stata}
+#inverse weighting 
+teffects ipw (heart_attack) (diabete smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper relative_heart_attack gender age edu annual_income weight bmi), atet
+#summary
+tebalance summary 
+```
+
+The summary table will report the difference between the means and the ratio of variances for each covariate. If the covariates are balanced, then the ratio of variances should be approximately equal to one. We can also create a density plot to determine the balance of the weighted sample, and again the covariate I am using is age.
+**insert teffects density.png**
+
