@@ -575,9 +575,9 @@ readLines("./SAS/GroupProject_SAS_Hongfan.sas")
 ```
 </details>
 
-#### Load Files
+<!-- #### Load Files -->
 
-```{r load_sas, message=FALSE}
+```{r load_sas, message=FALSE, echo=FALSE}
 path = './SAS/'
 prematch_path = sprintf('%s/output/freq_table.csv', path)
 matched_path = sprintf('%s/output/freq_table_merge.csv', path)
@@ -615,7 +615,7 @@ ttest = read_delim(ttest_path, delim = ',')
 
 #### 1. Distribution of Propensity Score
 
-```{r ps_sas}
+```{r ps_sas, echo=FALSE}
 knitr::include_graphics(ps_distribution)
 ```
 
@@ -625,7 +625,7 @@ From the figure above, we see that there is a huge difference in the distributio
 
 #### 2. Comparison Table Between Prematch Data And Macthed Data {.tabset .tabset-fade .tabset-pills}
 
-```{r tables_sas, message=FALSE}
+```{r tables_sas, message=FALSE,echo=FALSE}
 tab = function(df, cap = "hello"){
   df %>%
   mutate(
@@ -646,7 +646,7 @@ tab = function(df, cap = "hello"){
 
 ##### Before Match
 
-```{r table_1_sas}
+```{r table_1_sas,echo=FALSE}
 cap = paste0(
 "**Table 1.** Proportion of Heat Attack with Pre-matched Group"
 )
@@ -657,7 +657,7 @@ tab(prematch,
 
 ##### After Match
 
-```{r table_2_sas}
+```{r table_2_sas,echo=FALSE}
 cap = paste0(
 "**Table 2.** Proportion of Heat Attack with Matched Group"
 )
@@ -668,7 +668,7 @@ tab(matched,
 
 ##### Using Iverse Propensity Weight
 
-```{r table_3_sas}
+```{r table_3_sas,echo=FALSE}
 cap = paste0(
 "**Table 3.** Proportion of Heat Attack with Inverse Propensity Weight"
 )
@@ -687,35 +687,35 @@ We can see that before matching/weighting, the rate of heart attack in diabetes 
 
 ##### Age
 
-```{r age_sas}
+```{r age_sas, echo=FALSE}
 knitr::include_graphics(age_pre)
 knitr::include_graphics(age_after)
 ```
 
 ##### Year of Hyper
 
-```{r hyper_sas}
+```{r hyper_sas, echo=FALSE}
 knitr::include_graphics(hyper_pre)
 knitr::include_graphics(hyper_after)
 ```
 
 ##### Year of Smoke
 
-```{r smoke_sas}
+```{r smoke_sas,echo=FALSE}
 knitr::include_graphics(smoke_pre)
 knitr::include_graphics(smoke_after)
 ```
 
 ##### Blood Press
 
-```{r bloodpress_sas}
+```{r bloodpress_sas,echo=FALSE}
 knitr::include_graphics(press1_pre)
 knitr::include_graphics(press1_after)
 ```
 
 ##### Blood Press 2
 
-```{r bloodpress2_sas}
+```{r bloodpress2_sas,echo=FALSE}
 knitr::include_graphics(press2_pre)
 knitr::include_graphics(press2_after)
 ```
@@ -729,7 +729,7 @@ These graphs give us a direct and clear sense of how `Propensity Score Matching/
 
 ##### MEAN/STD
 
-```{r Balance_sas}
+```{r Balance_sas,echo=FALSE}
 n = (length(names(matched_sum)) - 1) / 3
 pre_data = NULL
 matched_data = NULL
@@ -792,7 +792,7 @@ tab %>%
 
 ##### T-TEST
 
-```{r ttest_sas}
+```{r ttest_sas,echo=FALSE}
 tab1 = conflimits %>%
   select(Variable, Class, Method, Variances, Mean) %>%
   left_join(ttest %>% 
