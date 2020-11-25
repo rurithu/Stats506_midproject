@@ -1,0 +1,149 @@
+title: "STATA_group_proj"
+author: "Rithu Uppalapati"
+date: "11/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### STATA
+```{r}
+#devtools::install_github("Hemken/Statamarkdown")
+library(Statamarkdown)
+```
+
+```{stata}
+import delimited "/Users/rithuuppalapati/Desktop/nhanes.csv", encoding(ISO-8859-1)
+```
+#### Pre-Processing
+##### Covariate Selection
+To accurately balance the covariates, we must look at a few factors
+* The covariates should be correlated to both the treatment and outcome variables
+* If some covariates do not have a statistically significant correlation to the outcome variable, we can choose ones that are correlated to the treatment variable
+  + the covariates only correlated to the outcome variable will not have a large effect on the covariate balance, so we don't need to include them in our program
+  + we should also select covariates that are precursors to our treatment 
+  
+```{stata}
+pwcorr heart_attack diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, sig star(.05)
+```
+ 
+ From this correlation table we can see that relative heart attack, gender, age, edu, annual income, weight, bmi, smoke_life, phy_vigorous, phy_moderate, blood_press, blood_press2, high_chol, meadial_access, cover_hc, health_diet, year_smoke, and year_hyper, all have statistically significant correlations with either the treatment variable or both the treatment and outcome variable. 
+ 
+I have not included the two medications, because they are used to treat the symptoms of diabetes.
+
+##### Initial Data Balance:
+
+We can create a logistic regression model in order to predict the assignment condition -- Has Diabetes == 1 and Does not have Diabetes == 0. We can also run a t-test to determine if the treatment has a statistical difference when compared to the control on our outcome.
+
+```{stata}
+logit heart_attack relative_heart_attack gender age edu annual_income weight bmi diabete smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper
+ 
+ttest diabete, by(heart_attack)
+```
+
+#### I. Propensity score estimation:
+First we must calculate our propensity score, to do this we are using the pscore package. 
+
+```{stata}
+pscore diabete relative_heart_attack gender age edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper, pscore(pc_pscore) blockid(pc_block) detail
+```
+
+We can then graph our unmatched/unweighted covariates.
+```{stata}
+psgraph, treated(diabete)pscore(pc_pscore)
+```
+#### II. Propensity score matching/weighting:
+There are many types of matching and weighting strategies that we could use. 
+In this tutorial I will focus on nearest neighbor matching, kernel matching, and Inverse-Probability weighting.
+
+##### Matching 
+This graph shows the propensity score on the treated variable before matching. 
+```{stata}
+twoway (kdensity _pscore if _treated==1) (kdensity _pscore if _treated==0, 
+lpattern(dash)), legend( label( 1 "Diabetes") label( 2 "No Diabetes" ) ) 
+xtitle("Propensity Score Before Matching") saving(before, replace)
+```
+###### Nearest Neighbor Matching
+```{stata}
+#match by newarest neighbors
+psmatch2 diabete, outcome(heart_attack) pscore(pc_pscore) neighbor(1) 
+caliper(.001) common
+```
+###### Balance Checking 
+```{stata}
+gen match=_n1
+replace match=_id if match==.
+duplicates tag match, gen(same_match)
+twoway (kdensity _pscore if _treated==1) 
+(kdensity _pscore if _treated==0 & dup>0, lpattern(dash)), 
+legend( label( 1 "Diabetes") label( 2 "No Diabetes" ) ) 
+xtitle("Propensity Score After Matching") saving(before, replace)
+```
+
+###### Kernel Matching 
+```{stata}
+psmatch2 diabete, kernel outcome(heart_attack) pscore(pc_pscore)
+```
+
+###### Balance Checking for Kernel Matching
+Instead of using a graph to analyze this matching strategy, we can run pstest right after we match our scores 
+```{stata}
+// run directly after psmatch2
+pstest gender age edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper, both graph
+```
+This graph shows the percent bias after matching.
+
+##### Inverse Propensity Score Weighting 
+
+```{stata}
+#inverse weighting 
+qui dr heart_attack diabete relative_heart_attack 
+gender age edu annual_income weight bmi smoke_life 
+phy_vigorous phy_moderate blood_press blood_press2 high_chol 
+meadial_access cover_hc health_diet year_smoke year_hyper, genvars
+#normalize weights
+egen sumofweights = total(iptwt)
+gen norm_weights = iptwt/sumofweights
+```
+Next we can create a balance table for the weighted propensity scores. The standardized difference is the same as the percent bias in pstest
+```{stata}
+pbalchk diabete relative_heart_attack gender age
+ edu annual_income weight bmi smoke_life phy_vigorous 
+ phy_moderate blood_press blood_press2 high_chol meadial_access 
+ cover_hc health_diet year_smoke year_hyper, wt(norm_weights)
+```
+
+###### Balance Checking
+We can then create a graph to see the matching before and after of the covariates, I chose age because in our correlation test it had the strongest correlation. 
+```{stata}
+twoway kdensity age if diabete [aweight= norm_weights] || kdensity 
+age if !diabete [aweight=norm_weights]
+```
+
+#### III. Balance Checking:
+By looking at the treatment effects on the treated we will be able to see how the covariates were accuratley able to predict the treatment, and we can also see how the treatment is related to the outcome 
+  
+#### Treatment Effects on Matched Data
+```{stata}
+#propensity score matching
+teffects psmatch (heart_attack) (diabete smoke_life phy_vigorous 
+phy_moderate blood_press blood_press2 high_chol meadial_access 
+cover_hc health_diet year_smoke year_hyper relative_heart_attack 
+gender age edu annual_income weight bmi), atet
+#check covariates using box plot
+tebalance box
+```
+
+#### Inverse Weighting Balance
+
+```{stata}
+#inverse weighting 
+teffects ipw (heart_attack) (diabete smoke_life phy_vigorous 
+phy_moderate blood_press blood_press2 high_chol meadial_access 
+cover_hc health_diet year_smoke year_hyper relative_heart_attack 
+gender age edu annual_income weight bmi), atet
+#check covariates (using age) density plot
+tebalance density age 
+
+```
