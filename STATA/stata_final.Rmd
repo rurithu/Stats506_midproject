@@ -42,9 +42,9 @@ To accurately balance the covariates, we must look at a few factors
 pwcorr heart_attack diabete relative_heart_attack gender age race edu annual_income weight bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, sig star(.05)
 ```
  
- From this correlation table we can see that relative_heart_attack, gender, age, edu, annual income, weight, bmi, smoke_life, phy_vigorous, phy_moderate, blood_press, blood_press2, high_chol, meadial_access, cover_hc, health_diet, year_smoke, and year_hyper, all have statistically significant correlations with either the treatment variable or both the treatment and outcome variable. 
+ From this correlation table we can see that all variables except `age` have statistically significant correlations with either the treatment variable or both the treatment and outcome variable. 
  
-Even though the two medications (`st0149`, `st0149`)are significant, I have not included them because they are used to treat the symptoms of diabetes.
+Even though the two medications (`hyper_med`, `hbq_med`)are significant, I have not included them because they are used to treat the symptoms of diabetes.
 
 ##### Initial Data Balance:
 
@@ -130,24 +130,19 @@ The treatment effects reweight the data to model an experimental design to get r
 #### Treatment Effects on Matched Data
 ```{stata}
 #propensity score matching
-teffects psmatch (heart_attack) (diabete smoke_life phy_vigorous 
-phy_moderate blood_press blood_press2 high_chol meadial_access 
-cover_hc health_diet year_smoke year_hyper relative_heart_attack 
-gender age edu annual_income weight bmi), atet
+teffects psmatch (heart_attack) (diabete smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper relative_heart_attack gender age edu annual_income weight bmi), atet
 #summary
 tebalance summarize
 ```
 The summary table for `teffects psmatch` will show the he average treatment effect from the propensity score matching estimator as the mean of the differences between the observed and potential results. We can visualize this with a boxplot.
 **insert balance plots for teffects.png**
 The summary table will report the difference between the means and the ratio of variances for each covariate. If the covariates are balanced, then the ratio of variances should be approximately equal to one. 
+
 #### Inverse Weighting Balance
 
 ```{stata}
 #inverse weighting 
-teffects ipw (heart_attack) (diabete smoke_life phy_vigorous 
-phy_moderate blood_press blood_press2 high_chol meadial_access 
-cover_hc health_diet year_smoke year_hyper relative_heart_attack 
-gender age edu annual_income weight bmi), atet
+teffects ipw (heart_attack) (diabete smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper relative_heart_attack gender age edu annual_income weight bmi), atet
 #summary
 tebalance summary 
 ```
@@ -155,4 +150,3 @@ tebalance summary
 The summary table will report the difference between the means and the ratio of variances for each covariate. If the covariates are balanced, then the ratio of variances should be approximately equal to one. We can also create a density plot to determine the balance of the weighted sample, and again the covariate I am using is age.
 **insert teffects density.png**
 
-```
