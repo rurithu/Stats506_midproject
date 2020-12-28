@@ -15,10 +15,8 @@ Creating propensity score weights and using inverse propensity weights and/or ma
 Whether or not adult patients with diabetes have higher risk for heart attack (myocardial infarction) in the United States?  
 Outcome: `heart_attack`  
 Comparison Group: `diabetes`
-
-
-The predictor used for estimating propensity score: 
-| Predictor               | Description                                         |
+Predictors: 
+|  Variable               | Description                                         |
 | ----------------------- | ----------------------------------------------------|
 | `relative_heart_attack` | Relatives have heart attack or not                  |
 | `gender`                | Gender of the participant                           |
@@ -37,6 +35,9 @@ The predictor used for estimating propensity score:
 | `hyper_med`             | Taking hypertension medicine or not                 |
 | `hbp_med`               | Taking HBP medicine or not                          | 
 | `high_chol`             | Being told high cholesterol level or not            |
+| `meadial_access`        | Being able to have medical access or nor            |
+| `cover_hc`              | Covered by health care or not                       |
+| `health_diet`           | Having a health diet or not                         |
 
 **Note:** For all the binary variable here with value 1 and 0, 1 = Yes and 0 = No
 

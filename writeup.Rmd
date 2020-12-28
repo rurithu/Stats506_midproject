@@ -6,39 +6,58 @@ author:
   - Zhihao Xu, xuzhihao@umich.edu
   - Yawen Hu, yawenhu@umich.edu
 date: "`r format.Date(Sys.Date(), '%B %d, %Y')`"
-output: html_document
+output: 
+  html_document:
+    theme: united
+    highlight: pygments
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(message = FALSE, echo = TRUE)
 library(reticulate)
 library(tidyverse)
+library(Statamarkdown)
 use_python("/opt/anaconda3/bin/python")
 ```
 
 ## About
 
 ### Research Question
-A propensity score is the **conditional probability** that a subject receives "treatment" given the subject’s observed covariates. When estimating treatment effects on a binary outcome, it may happen that the treatments are not randomly assigned to subjects, which is somewhat often the case in observational studies. Propensity scoring aims to mimic what happens in randomized controlled trials by balancing observed covariates between subjects in control and treatment groups.
+A propensity score is the **conditional probability** that a subject receives
+"treatment" given the subject’s observed covariates. When estimating treatment
+effects on a binary outcome, it may happen that the treatments are not randomly
+assigned to subjects, which is somewhat often the case in observational
+studies. Propensity scoring aims to mimic what happens in randomized controlled
+trials by balancing observed covariates between subjects in control and
+treatment groups.
 
-The purpose of this tutorial is to introduce how to perform propensity score analyses. In the following sections we will use the data from the National Health and Nutrition Examination Survey ([NHANES](https://www.cdc.gov/nchs/nhanes/index.htm)). We will use the propensity score as a tool to figure out the following question:
+The purpose of this tutorial is to introduce how to perform propensity score
+analyses. In the following sections we will use the data from the National
+Health and Nutrition Examination Survey
+([NHANES](https://www.cdc.gov/nchs/nhanes/index.htm)). We will use the
+propensity score as a tool to figure out the following question:
 
 > Whether or not adult patients with diabetes have higher risk for heart attack (myocardial infarction) in the United States?
 
 Here’s are the main reasons why we choose this method: 
 
-- This dataset is based on observational data but not experimental and thus has selection bias.
-- There are many confounding variables, such as age, body mass index (BMI), year of smoking etc. Also, among other variables, like race or income that seem to be irrelevant with this question may also have the potential to impact our outcome and be confounding variables.
+- This dataset is based on observational data but not experimental and 
+thus has selection bias.
+- There are many confounding variables, such as age, body mass index (BMI),
+year of smoking etc. Also, among other variables, like race or income that 
+seem to be irrelevant with this question may also have the potential to impact
+our outcome and be confounding variables.
 
 
 ### Data Description
 
-From the [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) dataset, we choose the following variable as the predictors, outcome and treatment.
+From the [NHANES](https://www.cdc.gov/nchs/nhanes/index.htm) dataset, 
+we choose the following variable as the predictors, outcome and treatment.
 
 Outcome: `heart_attack`  
-Treatment: `diabetes`
+Treatment: `diabetes`  
 
-Predictors: 
+Predictors:   
 
 |  Variable               | Description                                         |
 | ----------------------- | ----------------------------------------------------|
@@ -63,47 +82,94 @@ Predictors:
 | `cover_hc`              | Covered by health care or not                       |
 | `health_diet`           | Having a health diet or not                         |
 
-**Note:** For all the binary variable here with value 1 and 0, 1 = Yes and 0 = No
+**Note:** For all the binary variable here with value 1 and 0, 
+1 = Yes and 0 = No
 
 
 ## Tutorial Procedure
 #### 1. Create Propensity Score
-Just the same as doing a randomized controlled trial, we would want our treatment and control groups to have variables which have similar point estimates, such as roughly same mean age or mean BMI. Then Logistic Regression can be introduced to develop propensity scores, since it can represent the conditional probability that a patient receives the treatment given the observed covariates.
+Just the same as doing a randomized controlled trial, we would want our
+treatment and control groups to have variables which have similar point
+estimates, such as roughly same mean age or mean BMI. Then Logistic Regression
+can be introduced to develop propensity scores, since it can represent the
+conditional probability that a patient receives the treatment given the
+observed covariates.
 
 $$
 p(x) = P(T=1|X_1, X_2, \ldots, X_n)
 $$
-Therefore, we create a logistic model in which we take treatment, namely diabetes, as our response, and the other variables (except heart_attack and weights) as our predictors. Then each observation is assigned with a probability on which we can perform our matching.  
+Therefore, we create a logistic model in which we take treatment, namely
+diabetes, as our response, and the other variables (except heart_attack and
+weights) as our predictors. Then each observation is assigned with a
+probability on which we can perform our matching.  
 
-Note that we are not overly focusing on how well our model predicts whether a patient receives treatment or not. Here, what is more important is that we include all predictor variables in the model that are correlated or may be correlated with our outcome. So based on this we can do our best to eliminate the bias caused by the pre-treatment characteristics of the dataset.
+Note that we are not overly focusing on how well our model predicts whether a
+patient receives treatment or not. Here, what is more important is that we
+include all predictor variables in the model that are correlated or may be
+correlated with our outcome. So based on this we can do our best to eliminate
+the bias caused by the pre-treatment characteristics of the dataset.
 
 #### 2. Propensity Score Matching
 
-Here we use the propensity score to create 1-1 mapping between treatment and control groups. We also identify a caliper, which is a defined width based on a proportion of the standard deviation of the logit of the propensity score. Each observation from the treatment group is matched to the nearest observation in the control group that has not yet been matched by propensity score. The observations must have propensity scores that are within the caliper distance of each other. Here we choose 0.2*standard deviation as caliper distance.
+Here we use the propensity score to create 1-1 mapping between treatment and
+control groups. We also identify a caliper, which is a defined width based on
+a proportion of the standard deviation of the logit of the propensity score. 
+Each observation from the treatment group is matched to the nearest 
+observation in the control group that has not yet been matched by propensity 
+score. The observations must have propensity scores that are within the 
+caliper distance of each other. Here we choose 0.2*standard deviation as 
+caliper distance.
 
 #### 3. Compare the Matched Control Group with the Original Control Group
 
-Here we first compute the frequency table and the proportion of having heart attack for both the matched control group and the original control group. We can further use T-test to figure out whether the difference between the control group and the treatment group is statistically significant or not.
+Here we first compute the frequency table and the proportion of having heart 
+attack for both the matched control group and the original control group. We 
+can further use T-test to figure out whether the difference between the 
+control group and the treatment group is statistically significant or not.
 
 #### 4. Create Inverse Propensity Weight
 
-In propensity score matching, a large proportion of observations are not counted in the final frequency table because they are not matched. And this is due to a difference in the number of treatment groups and control groups. Using inverse propensity score weight, we can keep all this information by assigning different weight to different observations. Here we use to Average Treatment Effect (ATE) as our propensity weight, which is generally the quantity estimated when running a randomized study, and can be computed by
+In propensity score matching, a large proportion of observations are not 
+counted in the final frequency table because they are not matched. 
+And this is due to a difference in the number of treatment groups and control 
+groups. Using inverse propensity score weight, we can keep all this 
+information by assigning different weight to different observations. Here we 
+use to Average Treatment Effect (ATE) as our propensity weight, which is 
+generally the quantity estimated when running a randomized study, and can be 
+computed by
+
 $$
 w_{ATE}(x) = \frac{T}{p(x)} + \frac{1 - T}{1 - p(x)}
 $$
 
 
-## Software Tutorial
-## {.tabset .tabset-pills .tabset-fade}
+## Software Tutorial {.tabset .tabset-pills .tabset-fade}
 ### Python 
+```{r setup_py, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, echo = TRUE)
+library(reticulate)
+library(tidyverse)
+use_python("/opt/anaconda3/bin/python")
+```
+
+
+In this `python` tutorial, we mainly use the following package. `numpy` and 
+`pandas` are used to read and process the data, `sklearn.linear_model` is used
+to fit the logistic regression model, `statsmodels.stats.weightstats` is used 
+to construct the t-test with sample weight. All the algorithms related to 
+propensity score weighting in this tutorial are implemented in `python`, but 
+the tables and figures are visualized by `R(tidyverse)` using the output 
+extracted from `python`. All the `python` variables are stored in a `R` list 
+called `py` automatically and can be extracted by `$`.
+
+
 ```{python load_package, engine.path="/opt/anaconda3/bin/python"}
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from statsmodels.stats.weightstats import ttest_ind
-from matplotlib import pyplot as plt
-from scipy import stats
 ```
+
 
 ```{python read_data, engine.path="/opt/anaconda3/bin/python"}
 nhanes = pd.read_csv('./data/nhanes.csv')
@@ -120,6 +186,27 @@ lg.fit(nhanes_X, nhanes_diab, sample_weight = weight)
 prop_score = lg.predict_proba(nhanes_X)[:,1]
 ```
 
+```{r py_psplot, fig.cap=cap,fig.height=4,fig.width=8,echo=FALSE}
+cap = "**Figure 1:** Propensity score distribution by Treated/Control Groups"
+ps = data.frame(
+  p_score = py$prop_score,
+  diabete = ifelse(py$nhanes_diab, "Diabetes", "No Diabetes")
+)
+
+ps %>%
+  ggplot( aes(x = p_score) ) + 
+  geom_histogram( aes(color = diabete, fill = diabete),
+                      position = "identity", bins = 30, alpha = 0.3) +
+  xlab("Propensity Score") + 
+  ylab("Frequency") +
+  theme_bw()
+```
+
+Through **Figure 1**, we can see that, compared with diabetes patient, the 
+non-diabetes patients usually have lower propensity scores. If we compare the 
+`heart attack` rate directly, it is very likely to lead to a misleading 
+result. Hence, we need to implement the Propensity Score Weighting/Matching 
+to reduce the impact of covariates.
 
 #### Propensity Score Matching by Nearest Neighbor
 ```{python psmatch}
@@ -146,23 +233,57 @@ heart_non_dia = nhanes['heart_attack'].values[non_dia_idx]
 heart_dia_matched = nhanes['heart_attack'].values[dia_idx_matched]
 ```
 
-```{python ttest}
+
+```{python ttestpy}
 ttest_match = ttest_ind(heart_dia_matched, heart_matched, usevar='unequal', 
                         weights=(weight[dia_idx_matched], weight[matched_idx]))
 ```
 
 #### Estimate the Propensity Weights
 ```{python psweight}
-ps_weight = nhanes['diabete']/prop_score+(1-nhanes['diabete'])/(1 - prop_score)
+ps_weight = nhanes['diabete']/prop_score + (1 - nhanes['diabete'])/(1 - prop_score)
+```
+
+#### Balance Checking
+```{python balcheck}
+col = list(nhanes_X.columns)
+result_mean_after = []
+result_sd_after = []
+for i in nhanes_X.columns:
+    re_m = [np.average(nhanes_X[i][matched_idx],
+                       weights=nhanes['weight'][matched_idx]), 
+            np.average(nhanes_X[i][dia_idx_matched],
+                       weights=nhanes['weight'][dia_idx_matched])]
+    re_sd = [np.sqrt(np.average((nhanes_X[i][matched_idx]-re_m[0])**2, 
+                                weights=nhanes['weight'][matched_idx])), 
+             np.sqrt(np.average((nhanes_X[i][dia_idx_matched]-re_m[1])**2, 
+                                weights=nhanes['weight'][dia_idx_matched]))]
+    result_mean_after.append(re_m)
+    result_sd_after.append(re_sd)
+
+result_mean_before = []
+result_sd_before = []
+for i in nhanes_X.columns:
+    re_m = [np.average(nhanes_X[i][non_dia_idx[0]],
+                       weights=nhanes['weight'][non_dia_idx[0]]), 
+            np.average(nhanes_X[i][dia_idx[0]],
+                       weights=nhanes['weight'][dia_idx[0]])]
+    re_sd = [np.sqrt(np.average((nhanes_X[i][non_dia_idx[0]]-re_m[0])**2, 
+                                 weights=nhanes['weight'][non_dia_idx[0]])), 
+             np.sqrt(np.average((nhanes_X[i][dia_idx[0]]-re_m[1])**2, 
+                                 weights=nhanes['weight'][dia_idx[0]]))]
+    result_mean_before.append(re_m)
+    result_sd_before.append(re_sd)
 ```
 
 
+
 #### {.tabset .tabset-pills .tabset-fade}
-##### Table 1: Original Control Group
+##### Table 1: Before Matching
 ```{r tab1, echo=FALSE}
 cap1 = "**Table 1:** Proportion of Heat Attack with Original Control Group"
 tab_not_match = py$nhanes %>%
-  select(heart_attack, diabete, weight) %>%
+  dplyr::select(heart_attack, diabete, weight) %>%
   group_by(diabete, heart_attack) %>%
   summarise(freq = sum(weight)) %>%
   mutate(
@@ -170,7 +291,7 @@ tab_not_match = py$nhanes %>%
     freq_p = paste0(sprintf("%9.0f", freq),"(",
                     sprintf("%5.1f", prop*100),"%)")
   )%>%
-  select(-freq,-prop)
+  dplyr::select(-freq,-prop)
 
 as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
   bind_cols(tab_not_match[1:2,3]) %>%
@@ -180,11 +301,11 @@ as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
   kableExtra::kable_styling('striped', full_width = TRUE)
 ```
 
-##### Table 2: Matched Control Group
+##### Table 2: After Matching
 ```{r tab2, echo=FALSE}
 cap2 = "**Table 2:** Proportion of Heat Attack with Matched Control Group"
 tab_match = py$nhanes[c(py$dia_idx_matched+1,py$matched_idx+1),] %>%
-  select(heart_attack, diabete, weight) %>%
+  dplyr::select(heart_attack, diabete, weight) %>%
   group_by(diabete, heart_attack) %>%
   summarise(freq = sum(weight)) %>%
   mutate(
@@ -192,7 +313,7 @@ tab_match = py$nhanes[c(py$dia_idx_matched+1,py$matched_idx+1),] %>%
     freq_p = paste0(sprintf("%9.0f", freq),"(",
                     sprintf("%5.1f", prop*100),"%)")
   )%>%
-  select(-freq,-prop)
+  dplyr::select(-freq,-prop)
 as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
   bind_cols(tab_match[1:2,3]) %>%
   bind_cols(tab_match[3:4,3]) %>%
@@ -209,18 +330,16 @@ as_tibble_row(c(tstat = py$ttest_match[[1]],
                 pvalue = py$ttest_match[[2]], 
                 df = py$ttest_match[[3]] )) %>%
   knitr::kable(format = "html", align = "rr", caption = cap3,
-               col.names = c("T Statistic", "p-value", "degree of freedom"))%>%
+               col.names = c("T Statistic","p-value","degree of freedom")) %>%
   kableExtra::kable_styling('striped', full_width = TRUE)
 ```
 
-
-
-##### Table 4: Inverse Propensity Score Weighting
+##### Table 4: Inverse Weighting
 ```{r tab4, echo=FALSE}
 cap4 = paste0("**Table 4:** Proportion of Heat Attack with ", 
               "Inverse Propensity Score Weighting")
 tab_weight = py$nhanes %>%
-  select(heart_attack, diabete, weight) %>%
+  dplyr::select(heart_attack, diabete, weight) %>%
   bind_cols(ps_weight = py$ps_weight) %>%
   group_by(diabete, heart_attack) %>%
   summarise(freq = sum(weight*ps_weight)) %>%
@@ -229,7 +348,7 @@ tab_weight = py$nhanes %>%
     freq_p = paste0(sprintf("%9.0f", freq),"(",
                     sprintf("%5.1f", prop*100),"%)")
   )%>%
-  select(-freq,-prop)
+  dplyr::select(-freq,-prop)
 as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
   bind_cols(tab_weight[1:2,3]) %>%
   bind_cols(tab_weight[3:4,3]) %>%
@@ -237,9 +356,49 @@ as_tibble_col(c("No","Yes"),column_name = "Heart Attack") %>%
                 col.names = c("Heart Attack","Non-diabetes","Diabetes")) %>%
   kableExtra::kable_styling('striped', full_width = TRUE)
 ```
+##### Table 5: Balance Checking
 
+```{r py_balchech,echo=FALSE}
+cap5 = "**Table 5:** Balance Checking Table before and after matching"
+result_mean_after = do.call("rbind",py$result_mean_after)
+result_sd_after = do.call("rbind",py$result_sd_after)
+result_mean_before = do.call("rbind",py$result_mean_before)
+result_sd_before = do.call("rbind",py$result_sd_before)
+py$col %>%
+  bind_cols(paste0(sprintf("%5.3f", result_mean_before[,1]),"(",
+                       sprintf("%5.3f", result_sd_before[,1]),")")) %>%
+  bind_cols(paste0(sprintf("%5.3f", result_mean_before[,2]),"(",
+                       sprintf("%5.3f", result_sd_before[,2]),")")) %>%
+  bind_cols(paste0(sprintf("%5.3f", result_mean_after[,1]),"(",
+                       sprintf("%5.3f", result_sd_after[,1]),")")) %>%
+  bind_cols(paste0(sprintf("%5.3f", result_mean_after[,2]),"(",
+                       sprintf("%5.3f", result_sd_after[,2]),")")) %>%
+  knitr::kable(format = "html", align = "lrrrr", caption = cap5,
+               col.names = c("Covariate","Non-diabetes","Diabetes",
+                             "Non-diabetes","Diabetes")) %>%
+  kableExtra::kable_styling('striped', full_width = TRUE) %>%
+  kableExtra::add_header_above(c(" " = 1, "Before Matching" = 2, 
+                                 "After Matching" = 2))
+```
+
+
+#### Result Interpretation
+Through **Table 1**, **Table 2** and **Table 4**, we can see that before 
+matching/weighting, the rate of `heart attack` in diabetes patients is around 
+7 times larger than the non-diabetes patients. After matching/weighting, this 
+rate decreases to only 2-3 times larger, which indicates that our 
+matching/weighting significantly reduce the effect of the covariates. 
+**Table 5** also shows similar result. Before matching, the `heart_attack` 
+rate in `relative_heart_attack`, `age`, `bmi`, `blood_press`, `blood_press2`, 
+`hyper_med`, `hbq_med`, `year_smoke` and `year_hyper` are significantly 
+different between diabetes patients and non-diabetes patients. However, after 
+matching, the rates in all corresponding covariates look similar, which is 
+another evidence of the effect of propensity score matching. **Table 3** shows
+the t test result, which indicates that after matching, the `heart attack` 
+rate in diabetes patients is still higher than the non-diabetes patients.
 
 ### R
+#### Libraries:    
 ```{r libraries, message = FALSE}
 # libraries: ------------------------------------------------------------------
 library(MatchIt)
@@ -247,8 +406,19 @@ library(survey)
 library(tidyverse)
 library(ggplot2)
 library(tableone)
-
-# data: -----------------------------------------------------------------------
+```
+  * `MatchIt`: The package has `matchit` function, 
+  which is used to perform propensity score matching.  
+  * `survey`: `svydesign` and `svyglm` functions in this package are 
+  used to perform logistic regression with sample weights.  
+  * `tidyverse`: The package used for data I/O and preparation.  
+  * `ggplot2`: The package used for data visualization.  
+  * `tableone`: The package used for balance generating balance 
+  checking tables.
+       
+#### Step 1 - Pre-evaluating before matching   
+```{r data, message = FALSE}
+# data: ----------------------------------------------------------------------
 nhanes = read_delim("./data/nhanes.csv", delim = ",")
 nhanes = nhanes %>%
   mutate(
@@ -257,26 +427,48 @@ nhanes = nhanes %>%
     gender = ifelse(gender == 2, 1, 0),
   )
 ```
-
-
-#### I. Propensity score estimation
+  
+```{r check balance 1}
+var = c("relative_heart_attack", "gender", "age", "race", "edu", "annual_income",
+        "bmi", "smoke_life", "phy_vigorous", "phy_moderate", "blood_press",
+        "blood_press2", "hyper_med", "high_chol", "meadial_access", "cover_hc",
+        "health_diet", "year_smoke", "year_hyper")
+match_tab1 = CreateTableOne(vars=var, strata="diabete", data=nhanes, test=FALSE)
+print(match_tab1, smd = TRUE)  
+```
+  * We use the pre-matched data to do balance check between treatment and 
+  control groups. We computed the average standardized differences (SMD) for 
+  each covariates. From the table, we can find that, for most of the 
+  covariates, there are pretty large differences between treatment and
+  control groups.   
+     
+#### Step 2 - Propensity score estimation     
 ```{r p_score, warning = FALSE, message = FALSE}
 ## Logistic regression for treatment ~ pretreatment:
 design_ps = svydesign( ids = ~1, weights = ~weight, data = nhanes )
 ps_mod = svyglm(diabete ~ relative_heart_attack + gender + age + race + edu 
-                + annual_income + bmi + smoke_life + phy_vigorous + phy_moderate 
+                + annual_income + bmi + smoke_life + phy_vigorous + phy_moderate
                 + blood_press + blood_press2 + hyper_med + hbq_med + high_chol 
                 + meadial_access + cover_hc + health_diet + year_smoke + year_hyper,
                 family = binomial(),
                 design = design_ps)
-#summary(ps_mod)
-
 ## Get the propensity score:
 p_score = predict(ps_mod, type = "response")
 ```
-
+  * We estimate the propensity score by running a logistic model, where the 
+  outcome variable `diabete` is a binary variable indicating treatment status 
+  and all the other covariates are used as predictors. In order to include 
+  sample weights in the model, we also used `svydesign` and `svyglm` 
+  functions in the `survey` package.   
+  * With the logistic model, we can calculate the propensity score, 
+  which is simply the predicted probability of being treated.   
+  * The distribution of the generated propensity scores in treatment/control 
+  groups are shown below. From figure 1, we can find that there are some 
+  overlaps between the two groups, which guarantees the propensity score 
+  matching sample.  
+    
 <details>
-<summary> Click to view `code for figure1`. </summary>
+<summary> Click to view `code for figure 1`. </summary>
 ```{r propensity score distribution}
 cap1 = "**figure 1.** *Propensity score distribution by Treated/Control Groups*"
 ps = data.frame(
@@ -301,11 +493,10 @@ cap1 = "**figure 1.** *Propensity score distribution by Treated/Control Groups*"
 print(fig1)
 ```
 
-
-#### II. Propensity score match:
+#### Step 3 - Propensity score match   
 ```{r p_score matching}
 nhanes_ps = nhanes %>% mutate( p_score = p_score)
-match_mod = matchit(ps_mod,
+match_mod = matchit(ps_mod$formula,
                     distance = 'logit',
                     method = "nearest", 
                     caliper = .2,
@@ -313,11 +504,16 @@ match_mod = matchit(ps_mod,
                     data = nhanes_ps,
                     replace = FALSE)
 ps_match = match.data(match_mod)
-#dim(ps_match)
 ```
-
-#### III. Balance Checking:
-```{r check balance}
+  * We can use propensity score matching to generate a sub-sample, which 
+  minimizes the covariates' difference between treatment group and control 
+  group. The `matchit` function in `MatchIt` package can estimate the 
+  propensity score internally and match observations based on different 
+  methods. The method we chose in this tutorial example is nearest 
+  neighborhood.  
+    
+#### Step 4 - Balance Checking after matching  
+```{r check balance 2}
 var = c("relative_heart_attack", "gender", "age", "race", "edu", "annual_income",
         "bmi", "smoke_life", "phy_vigorous", "phy_moderate", "blood_press",
         "blood_press2", "hyper_med", "high_chol", "meadial_access", "cover_hc",
@@ -325,12 +521,20 @@ var = c("relative_heart_attack", "gender", "age", "race", "edu", "annual_income"
 match_tab = CreateTableOne(vars=var, strata="diabete", data=ps_match, test=FALSE)
 print(match_tab, smd = TRUE)  
 ```
+  * By using the same method of the pre-evaluation mentioned in Step 1, 
+  we can do the balance checking again using the matched sample. 
+  From the table, it's obvious to observe significant decreases in SMD 
+  of all covariates. The difference between treatment group and control 
+  group became insignificant with the matched sample.  
+    
+#### Step 5 - Comparison between pre_match data and matched data   
 
-#### IV. Comparison between pre_match data and matched data.
-##### **Table 1: **
+#### Result tables {.tabset}  
+##### Proportion of Heat Attack with Pre-matched Group  
 <details>
-<summary> Click to view `code for Table1`. </summary>
-```{r tab1_}
+<summary> Click to view `code for Table 1`. </summary>
+```{r tab1r}
+cap2 = "**Table 1.** *Proportion of Heat Attack with Pre-matched Group*"
 tab_pre_mt = nhanes %>%
   group_by(diabete, heart_attack) %>%
   summarize(n = sum(weight), .groups = "drop_last") %>%
@@ -347,7 +551,7 @@ tab_pre_mt = nhanes %>%
     names_from = Diabetes,
     values_from = prop
   ) %>%
-  knitr::kable(format = 'html') %>%
+  knitr::kable(format = 'html', caption = cap2) %>%
   kableExtra::kable_styling("striped", full_width = TRUE) %>%
   kableExtra::add_header_above(
     header = c("Proportion of Heat Attack with Pre-matched Group" = 3)
@@ -358,10 +562,12 @@ tab_pre_mt = nhanes %>%
 ```{r table1, echo = FALSE}
 tab_pre_mt
 ```
-##### **Table 2: **
+
+##### Proportion of Heat Attack with Matched Group  
 <details>
 <summary> Click to view `code for Table2`. </summary>
-```{r tab2_}
+```{r tab2r}
+cap3 = "**Table 2.** *Proportion of Heat Attack with Matched Group*"
 tab_mt = ps_match %>%
   group_by(diabete, heart_attack) %>%
   summarize(n = sum(weight), .groups = "drop_last") %>%
@@ -378,7 +584,7 @@ tab_mt = ps_match %>%
     names_from = Diabetes,
     values_from = prop
   ) %>%
-  knitr::kable(format = 'html') %>%
+  knitr::kable(format = 'html', caption = cap3) %>%
   kableExtra::kable_styling("striped", full_width = TRUE) %>%
   kableExtra::add_header_above(
     header = c("Proportion of Heat Attack with Matched Group" = 3)
@@ -386,17 +592,33 @@ tab_mt = ps_match %>%
 ```
 </details>
 
-
 ```{r table2, echo = FALSE}
 tab_mt
 ```
 
+##### t-test
+```{r ttest}
+heart_attack_d = ps_match %>%
+  filter(diabete == 1)
 
-#### V. Inverse propensity score weighting:
-##### **Table 3: **
+heart_attack_nd = ps_match %>%
+  filter(diabete == 0) 
+
+print(t.test(as.numeric(heart_attack_d$heart_attack), as.numeric(heart_attack_nd$heart_attack)))
+```
+  * With the t-test result, we reject the hypothesis that the mean value 
+  of heart attack in two groups are equal. So with the matched data, the 
+  heart attack rate in diabete group is still higher than the 
+  non-diabete group.  
+  
+#### Step 6 - Inverse propensity score weighting    
+  * We also can generate the inverse propensity score weight to reduce 
+  the bias between treatment and control groups.  
+  
 <details>
 <summary> Click to view `code for Table3`. </summary>
 ```{r ipw}
+cap4 = "**Table 3.** Proportion of Heat Attack with Inverse Propensity Weight"
 invert = nhanes_ps %>%
   select(diabete, heart_attack, weight, p_score) %>%
   mutate(
@@ -418,19 +640,570 @@ invert = nhanes_ps %>%
     names_from = Diabetes,
     values_from = prop
   ) %>%
-  knitr::kable(format = 'html') %>%
+  knitr::kable(format = 'html', caption = cap4) %>%
   kableExtra::kable_styling("striped", full_width = TRUE) %>%
   kableExtra::add_header_above(
     header = c("Proportion of Heat Attack with Inverse Propensity Weight" = 3)
   )
 ```
-</details>
+</details> 
 
 ```{r table3, echo = FALSE}
 invert
 ```
 
 
+### SAS
+
+#### README
+
+In this `SAS` tutorial, we mainly use the following procedure. `proc import` 
+and `macros` `csvexport`(Contributed by Dr.Henderson) are used to read and 
+export the data. `proc logistic` is used to fit the logistic regression model 
+and predicts propensity score, and `gmatch`(Contributed by The Division of 
+Biostatistics at the Mayo Clinic) perfroms the greedy matching.   
+     
+Then we use `proc gchart` to reveal the structure of the data, thereafter 
+using `proc means` along with `proc ttest` to compute means and construct the 
+t-test with sample weight.     
+        
+This work is done primarily in `SAS`, with the exception that the write up 
+and figures or tables  for visualization are produced in R.
+
+#### SAS Script
+
+<details>
+ <summary> `GroupProject_SAS_Hongfan.sas` </summary>
+```{r GroupProject_SAS_Hongfan.sas, comment=""}
+readLines("./SAS/GroupProject_SAS_Hongfan.sas")
+```
+</details>
+
+<!-- #### Load Files -->
+
+```{r load_sas, message=FALSE, echo=FALSE}
+path = './SAS/'
+prematch_path = sprintf('%s/output/freq_table.csv', path)
+matched_path = sprintf('%s/output/freq_table_merge.csv', path)
+inverseweight_path = sprintf('%s/output/ps_match_inverse_table.csv', path)
+matched_sum_path = sprintf('%s/output/matched_summary.csv', path)
+pre_sum_path = sprintf('%s/output/pre_summary.csv', path)
+conflimits_path = sprintf('%s/output/conflimits.csv', path)
+ttest_path = sprintf('%s/output/ttest.csv', path)
+
+age_pre = sprintf('%s/graph/age_before.png', path)
+age_after = sprintf('%s/graph/age_after.png', path)
+
+hyper_pre = sprintf('%s/graph/hyper_before.png', path)
+hyper_after = sprintf('%s/graph/hyper_after.png', path)
+
+smoke_pre = sprintf('%s/graph/smoke_before.png', path)
+smoke_after = sprintf('%s/graph/smoke_after.png', path)
+
+press1_pre = sprintf('%s/graph/press_before.png', path)
+press1_after = sprintf('%s/graph/press_after.png', path)
+
+press2_pre = sprintf('%s/graph/press2_before.png', path)
+press2_after = sprintf('%s/graph/press2_after.png', path)
+
+ps_distribution = sprintf('%s/graph/ps_combined.png', path)
+
+prematch = read_delim(prematch_path, delim = ',')
+matched = read_delim(matched_path, delim = ',')
+inverseweight = read_delim(inverseweight_path, delim = ',')
+matched_sum = read_delim(matched_sum_path, delim = ',')
+pre_sum = read_delim(pre_sum_path, delim = ',')
+conflimits = read_delim(conflimits_path, delim = ',')
+ttest = read_delim(ttest_path, delim = ',')
+```
+
+#### 1. Distribution of Propensity Score
+
+```{r ps_sas, echo=FALSE}
+knitr::include_graphics(ps_distribution)
+```
+
+#### Explanation
+
+From the figure above, we see that there is a huge difference in the 
+distribution of propensity score of two groups. If we compare the heart attack
+rate directly, a misleading result may occur. Therefore, we need to implement 
+the Propensity Score Matching/Weighting to achieve balance or comparability 
+of treatment groups in terms of their measured pretreatment covariates, and 
+thereby controls for confounding bias in estimating treatment effects.
+
+#### 2. Comparison Table Between Prematch Data And Macthed Data 
+#### {.tabset .tabset-fade .tabset-pills}
+
+```{r tables_sas, message=FALSE,echo=FALSE}
+tab = function(df, cap = "hello"){
+  df %>%
+  mutate(
+    `Heart Attack` = ifelse(heart_attack == 1, "YES", "NO"),
+    diabetes = ifelse(diabetes == 1, "Diabetes", "Non-Diabetes")
+    ) %>%
+  group_by(diabetes) %>%
+  mutate(pct = COUNT / sum(COUNT)) %>%
+  mutate(COUNT_PCT = sprintf('%.0f (%.2f%s)', COUNT, pct * 100, "%")) %>%
+  select(`Heart Attack`, diabetes, COUNT_PCT) %>%
+  pivot_wider(id_cols = `Heart Attack`,
+               names_from = 'diabetes', 
+               values_from = 'COUNT_PCT') %>%
+  knitr::kable(format = 'html', caption = cap) %>%
+  kableExtra::kable_styling("striped", full_width = TRUE)
+}
+```
+
+##### Before Match
+
+```{r table_1_sas,echo=FALSE}
+cap = paste0(
+"**Table 1.** Proportion of Heat Attack with Pre-matched Group"
+)
+tab(prematch,
+    cap = cap
+    )
+```
+
+##### After Match
+
+```{r table_2_sas,echo=FALSE}
+cap = paste0(
+"**Table 2.** Proportion of Heat Attack with Matched Group"
+)
+tab(matched,
+    cap = cap
+    )
+```
+
+##### Using Iverse Propensity Weight
+
+```{r table_3_sas,echo=FALSE}
+cap = paste0(
+"**Table 3.** Proportion of Heat Attack with Inverse Propensity Weight"
+)
+tab(inverseweight,
+    cap = cap
+    )
+```
+
+
+#### Explanation
+
+These tables show how `Propensity Score Matching/Weighting` eliminate or 
+reduce the effect of pre-treatment covariates on estimating treatment effect.     
+We can see that before matching/weighting, the rate of heart attack in 
+diabetes patients is around 7 times larger than the non-diabetes patients. 
+After matching/weighting, this rate decreases to only 2-3 times larger. This 
+tells us the diabetes does have an effect on heart attack, but not that much.
+
+#### 3. Comparison Graph Between Prematch Data And Macthed Data 
+#### {.tabset .tabset-fade .tabset-pills}
+
+##### Age
+
+```{r age_sas, echo=FALSE}
+knitr::include_graphics(age_pre)
+knitr::include_graphics(age_after)
+```
+
+##### Year of Hyper
+
+```{r hyper_sas, echo=FALSE}
+knitr::include_graphics(hyper_pre)
+knitr::include_graphics(hyper_after)
+```
+
+##### Year of Smoke
+
+```{r smoke_sas,echo=FALSE}
+knitr::include_graphics(smoke_pre)
+knitr::include_graphics(smoke_after)
+```
+
+##### Blood Press
+
+```{r bloodpress_sas,echo=FALSE}
+knitr::include_graphics(press1_pre)
+knitr::include_graphics(press1_after)
+```
+
+##### Blood Press 2
+
+```{r bloodpress2_sas,echo=FALSE}
+knitr::include_graphics(press2_pre)
+knitr::include_graphics(press2_after)
+```
+
+#### Explanation
+
+These graphs give us a direct and clear sense of how 
+`Propensity Score Matching/Weighting` balance the pre-treatment covariates.
+Here I select `age`, `year of smoke`, `year of hyper`,
+`blood pressure` to illustrate this fact. Before matching, the distribution 
+of these variables differs heavily on two groups. After matching, these
+pre-treatment covariates seems to be unified, which helps us to mimic the
+situations of Randomized clinical trials(RCT).
+
+#### 4. Balance Checking For All Covariates And T Test 
+#### {.tabset .tabset-fade .tabset-pills}
+
+##### MEAN/STD
+
+```{r Balance_sas,echo=FALSE}
+n = (length(names(matched_sum)) - 1) / 3
+pre_data = NULL
+matched_data = NULL
+
+for(i in 1:n){
+  data0 = pre_sum %>%
+    select(1, 2+3*(i-1), 3+3*(i-1), 4+3*(i-1))
+  names(data0) = c("diabetes", "variable", "mean", "std")
+  data_wider = data0 %>% 
+    mutate(mean_std = sprintf("%.3f(%.3f)", mean, std),
+           diabetes = ifelse(diabetes == "Yes",
+                             "Diabetes",
+                             "Non-diabetes")
+    ) %>%
+    select(diabetes, variable, mean_std) %>%
+    pivot_wider(names_from = diabetes,
+                values_from = mean_std)
+  pre_data = bind_rows(pre_data, data_wider)
+}
+
+for(i in 1:n){
+  data0 = matched_sum %>%
+    select(1, 2+3*(i-1), 3+3*(i-1), 4+3*(i-1))
+  names(data0) = c("diabetes", "variable", "mean", "std")
+  data_wider = data0 %>% 
+    mutate(mean_std = sprintf("%.3f(%.3f)", mean, std),
+           diabetes = ifelse(diabetes == "Yes",
+                             "Diabetes",
+                             "Non-diabetes")
+           ) %>%
+    select(diabetes, variable, mean_std) %>%
+    pivot_wider(names_from = diabetes,
+                values_from = mean_std)
+  matched_data = bind_rows(matched_data, data_wider)
+}
+
+tab = left_join(pre_data, matched_data, by = "variable")
+cap_tab = paste(
+  "**Table 4.** *The mean of all variables before and after matching.*",
+  "Numbers in parantheses are standard deviation."
+)
+cn = c('Covariate',
+       'Non-diabetes', 'diabetes',
+       'Non-diabetes', 'Non-diabetes'
+       )
+tab %>%
+  knitr::kable(
+    format = 'html', 
+    escape = FALSE, 
+    align = 'lcccc',
+    col.names = cn,
+    cap = cap_tab
+  ) %>%
+  kableExtra::kable_styling("striped", full_width = TRUE) %>%
+  kableExtra::add_header_above(header = c(' ' = 1,
+                                          'Before Matching' = 2,
+                                          'After Matching' = 2)
+                               )
+```
+
+##### T-TEST
+
+```{r ttest_sas,echo=FALSE}
+tab1 = conflimits %>%
+  select(Variable, Class, Method, Variances, Mean) %>%
+  left_join(ttest %>% 
+              select(-Variable),
+            by = c("Method", "Variances")
+            ) %>%
+  replace_na(list(Method = "-",
+                  Variances = "-",
+                  tValue = "-",
+                  DF = "-",
+                  Probt = "-")
+             )
+cap_tab1 = paste(
+  "**Table 5.** *Perform t test to show significance using two method.*",
+  "Diabetes indeed has an effect on heart attack."
+)
+tab1 %>%
+  knitr::kable(format = 'html', caption = cap_tab1) %>%
+  kableExtra::kable_styling("striped", full_width = TRUE)
+```
+
+#### Explanation
+
+Finally, I provides two tables here. The first one is the mean-std pairs of 
+all covariates which shows the difference of two groups. The second one shows 
+the t test result, which indicates that after matching, the heart attack rate 
+in diabetes patients is still higher than the non-diabetes patients.     
+So now we can answer the question at the beginning: Adult patients with 
+diabetes do have higher risk for heart attack (myocardial infarction) in the 
+United States.
+
+
+### STATA
+
+```{r load_stata, message=FALSE, echo=FALSE}
+path = './STATA/pictures'
+f1 = sprintf('%s/age_inverse_weight.png', path)
+f2 = sprintf('%s/balance_plots_for_teffects.png', path)
+f3 = sprintf('%s/density_for_teffects.png', path)
+f4 = sprintf('%s/pre-matched_propensity_score.png', path)
+f5= sprintf('%s/propensity_score_b4_match.png', path)
+f6 = sprintf('%s/propensity_score_after_match.png', path)
+f7 = sprintf('%s/propscoreBias.png', path)
+```
+
+```{stata s1, collectcode=TRUE}
+import delimited "./data/nhanes.csv", encoding(ISO-8859-1)
+```
+#### Pre-Processing
+##### Packages 
+In this tutorial we are using:
+* `pscore` package - used to calculate the pscore
+* `psmatch2` package - used to match the propensity scores 
+* `st0149` package - used to create weights the propensity scores
+* `pbalchk` package - used to analyze the weighted propensity scores
+*  also using the `teffects` function which is included in STATA
+
+##### Covariate Selection
+To accurately balance the covariates, we must look at a few factors
+* The covariates should be correlated to both the treatment and 
+outcome variables
+* If some covariates do not have a statistically significant correlation 
+to the outcome variable, we can choose ones that are correlated to the
+treatment variable
+  + the covariates only correlated to the outcome variable will not have a
+  large effect on the covariate balance, so we don't need to include them 
+  in our program
+  + we should also select covariates that are precursors to our treatment 
+  
+```{stata s2, collectcode=TRUE}
+pwcorr heart_attack diabete relative_heart_attack gender age race edu annual_income bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 hyper_med hbq_med high_chol meadial_access cover_hc health_diet year_smoke year_hyper, sig star(.05)
+```
+ 
+From this correlation table we can see that relative_heart_attack, gender,
+age, edu, annual income, bmi, smoke_life, phy_vigorous, phy_moderate,
+blood_press, blood_press2, high_chol, meadial_access, cover_hc, health_diet,
+year_smoke, and year_hyper, all have statistically significant correlations
+with either the treatment variable or both the treatment and outcome variable.
+ 
+Even though the two medications  (`hyper_med`, `hbq_med`) are significant, 
+I have not included them because they are used to treat the symptoms 
+of diabetes.
+
+##### Initial Data Balance:
+
+We can create a logistic regression model in order to predict the assignment
+condition -- Has Diabetes == 1 and Does not have Diabetes == 0. We can also
+run a t-test to determine if the treatment has a statistical difference when
+compared to the control on our outcome.
+
+```{stata s3, collectcode=TRUE}
+logit heart_attack relative_heart_attack gender age edu annual_income bmi diabete smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper
+ 
+ttest diabete, by(heart_attack)
+```
+
+#### I. Propensity score estimation:
+First we must calculate our propensity score, which balances measured
+confounders. To do this we are using the pscore package. 
+
+```{stata s4, collectcode=TRUE, results="hide"}
+pscore diabete relative_heart_attack gender age edu annual_income bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper, pscore(pc_pscore) blockid(pc_block) detail
+```
+Adding the function detail will allow us to make sure that the covariates 
+are balanced across both the treatment and control groups.
+
+We can then graph our unmatched/unweighted covariates, which will show
+us the distribution across the two groups.
+
+```{r f4, echo=FALSE}
+knitr::include_graphics(f4)
+```
+
+
+#### II. Propensity score matching/weighting:
+There are many types of matching and weighting strategies that we could use. 
+In this tutorial I will focus on nearest neighbor matching, kernel matching,
+and Inverse-Probability weighting.
+
+##### Matching 
+This graph shows the propensity score on the treated variable before matching. 
+```{r f5, echo=FALSE}
+knitr::include_graphics(f5)
+```
+
+To match the sample by the propensity score we will be using the 
+`psmatch2` package for both nearest neighbor and kernel matching.
+
+###### Nearest Neighbor Matching
+* Nearest neighbor matching chooses the best control match for each 
+individual point in the sample.
+* The downside to this matching is that it needs a very large non-treatment 
+group to perform better, and because our non-treatment group is not that 
+large, this is not the most ideal method.
+```{stata s5, collectcode=TRUE}
+#match by nearest neighbors
+psmatch2 diabete, outcome(heart_attack) pscore(pc_pscore) neighbor(1) caliper(.001) common
+```
+###### Balance Checking for Nearest Neighbor
+We can create a density graph to compare to figure 1a. to see if the 
+covariates across both groups are balanced after matching.
+```{r f6, echo=FALSE}
+knitr::include_graphics(f6)
+```
+
+
+###### Kernel Matching 
+This combines both weighting and matching, where a larger weight is given to 
+the controls that are more similar to the treated.
+```{stata s6, collectcode=TRUE}
+psmatch2 diabete, kernel outcome(heart_attack) pscore(pc_pscore)
+```
+
+###### Balance Checking for Kernel Matching
+Instead of using a graph to analyze this matching strategy, we can run pstest 
+right after we match our scores. 
+The ptest will give us standardized differences between the means of the 
+matched and unmatched, and also give us insight into the bias reduction, 
+which we can see in the graph.
+```{r f7, echo=FALSE}
+knitr::include_graphics(f7)
+```
+This graph shows the percent bias change after matching.
+
+##### Inverse Propensity Score Weighting 
+In inverse weighting each treated individual is given a weight of 
+$1/pscore$, and each control individual is given a weight of $1/(1-pscore)$
+The weights are then normalized to one and we can get an average 
+treatment effect for the sample.
+```{stata s7, collectcode=TRUE}
+#inverse weighting 
+qui dr heart_attack diabete relative_heart_attack gender age edu annual_income bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper, genvars
+#normalize weights
+egen sumofweights = total(iptwt)
+gen norm_weights = iptwt/sumofweights
+```
+Next we can create a balance table for the weighted propensity scores 
+using the `pbalchk` package. The standardized difference gives us an 
+estimate into how much our bias is changed. 
+```{stata s8, collectcode=TRUE}
+pbalchk diabete relative_heart_attack gender age edu annual_income bmi smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper, wt(norm_weights)
+```
+
+###### Balance Checking
+We can then create a graph to see the matching before and after of the 
+covariates, I chose age because in our correlation test it had the strongest 
+correlation, and in the balance table it had the greatest positive 
+standardized difference. 
+```{r f1, echo=FALSE}
+knitr::include_graphics(f1)
+```
+We can see the density functions show that there is balance across 
+both groups.
+
+#### III. Treatment Effects:
+The treatment effect models allow us to see "causal effects" for 
+observational data.
+The treatment effects reweight the data to model an experimental design 
+to get randomized results, which hopefully lead to covariate balance
+  
+#### Treatment Effects on Matched Data
+```{stata s9, collectcode=TRUE}
+#propensity score matching
+teffects psmatch (heart_attack) (diabete smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper relative_heart_attack gender age edu annual_income bmi), atet
+#summary
+tebalance summarize
+```
+The summary table for `teffects psmatch` will show the he average treatment 
+effect from the propensity score matching estimator as the mean of the 
+differences between the observed and potential results. We can visualize this 
+with a boxplot.
+```{r f2, echo=FALSE}
+knitr::include_graphics(f2)
+```
+The summary table will report the difference between the means and the ratio 
+of variances for each covariate. If the covariates are balanced, then the 
+ratio of variances should be approximately equal to one. 
+#### Inverse Weighting Balance
+
+```{stata s10, collectcode=TRUE}
+#inverse weighting 
+teffects ipw (heart_attack) (diabete smoke_life phy_vigorous phy_moderate blood_press blood_press2 high_chol meadial_access cover_hc health_diet year_smoke year_hyper relative_heart_attack gender age edu annual_income bmi), atet
+#summary
+tebalance summary 
+```
+
+The summary table will report the difference between the means and the ratio 
+of variances for each covariate. If the covariates are balanced, then the 
+ratio of variances should be approximately equal to one. We can also create a 
+density plot to determine the balance of the weighted sample, and again the 
+covariate I am using is age.
+```{r f3, echo=FALSE}
+knitr::include_graphics(f3)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Discussion
+Propensity score matching/weighting can eliminate a greater portion of bias 
+and facilitate a more precise estimating on treatment effect. Matching by the 
+propensity score creates a balanced 1-1 dataset, allowing a clear and direct 
+comparison of pre-treatment covariates between groups, and estimates the 
+average treatment effect for the treated (ATT). Whereas inverse weighting 
+estimates the average treatment effect (ATE), which introduces a scenario that
+every patient within the population was offered the treatment (only differs in
+extent).
+
+After using propensity score analysis, what you should always remember is to 
+check that covariates, especially those key factors, like age or year of hyper
+in this case study, are balanced by the propensity score. Without balance, the
+underlying theory fails. However, it may not be reasonable to expect perfect 
+balance on every one, because even though in an RCT, a comparison of 
+covariates will occasionally find differences between groups. 
+
+### Comparison across software
+We use 4 different programming languages to go through this tutorial.
+When it comes to data visualization, R and Python has a huge advantage 
+over Stata and SAS. This is probably because R and Python are open-source, 
+then many excellent programmers can contribute their talent, and this is 
+why R and Python has more useful and powerful packages or modules than 
+the other.
+
+Also, R and Python are very convenient when you output the results. This is 
+extremely obvious if you compare them to SAS and Stata. In SAS and Stata, we 
+have to write macros to help export the files we want. Even after export, 
+things are still troublesome. If you take a look at the output folder under 
+the SAS folder in this repo, you will see that the `pre_summary.csv` is very 
+thorny to handle in contrasts with the outcome produced by R or Python. 
+And in STATA code, some of the command cannot be separated into multiple 
+lines, especially in the varlist. Hence, some of the STATA code does not 
+satisfy the 79-character limit.
+
+However, at the cost of flexibility, the structure of SAS and Stats provide 
+their own advantages. As SAS is more of a procedural language in comparison 
+to R, its syntax is easy to understand and learn, also easily debuggable.
 
 
 

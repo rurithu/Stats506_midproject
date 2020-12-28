@@ -1,0 +1,281 @@
+---
+title: "Midterm Group Project, <br>Stats 506, F20"
+author: "Hongfan Chen"
+date: "`r format.Date(Sys.Date(), '%B %d, %Y')`"
+output: 
+  html_document:
+    code_folding: hide
+    theme: united
+    highlight: pygments
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, warning=FALSE}
+suppressPackageStartupMessages({
+  library(tidyverse)
+})
+```
+
+### README
+
+In this `SAS` tutorial, we mainly use the following procedure. `proc import` and `macros` `csvexport`(Contributed by Dr.Henderson) are used to read and export the data. `proc logistic` is used to fit the logistic regression model and predicts propensity score, and `gmatch`(Contributed by The Division of Biostatistics at the Mayo Clinic) perfroms the greedy matching.   
+     
+Then we use `proc gchart` to reveal the structure of the data, thereafter using `proc means` along with `proc ttest` to compute means and construct the t-test with sample weight.     
+        
+This work is done primarily in `SAS`, with the exception that the write up and figures or tables  for visualization are produced in R.
+
+### SAS Script
+
+<details>
+ <summary> `GroupProject_SAS_Hongfan.sas` </summary>
+```{r GroupProject_SAS_Hongfan.sas, comment=""}
+readLines("./GroupProject_SAS_Hongfan.sas")
+```
+</details>
+
+### Load Files
+
+```{r load_sas, message=FALSE}
+path = './'
+prematch_path = sprintf('%s/output/freq_table.csv', path)
+matched_path = sprintf('%s/output/freq_table_merge.csv', path)
+inverseweight_path = sprintf('%s/output/ps_match_inverse_table.csv', path)
+matched_sum_path = sprintf('%s/output/matched_summary.csv', path)
+pre_sum_path = sprintf('%s/output/pre_summary.csv', path)
+conflimits_path = sprintf('%s/output/conflimits.csv', path)
+ttest_path = sprintf('%s/output/ttest.csv', path)
+
+age_pre = sprintf('%s/graph/age_before.png', path)
+age_after = sprintf('%s/graph/age_after.png', path)
+
+hyper_pre = sprintf('%s/graph/hyper_before.png', path)
+hyper_after = sprintf('%s/graph/hyper_after.png', path)
+
+smoke_pre = sprintf('%s/graph/smoke_before.png', path)
+smoke_after = sprintf('%s/graph/smoke_after.png', path)
+
+press1_pre = sprintf('%s/graph/press_before.png', path)
+press1_after = sprintf('%s/graph/press_after.png', path)
+
+press2_pre = sprintf('%s/graph/press2_before.png', path)
+press2_after = sprintf('%s/graph/press2_after.png', path)
+
+ps_distribution = sprintf('%s/graph/ps_combined.png', path)
+
+prematch = read_delim(prematch_path, delim = ',')
+matched = read_delim(matched_path, delim = ',')
+inverseweight = read_delim(inverseweight_path, delim = ',')
+matched_sum = read_delim(matched_sum_path, delim = ',')
+pre_sum = read_delim(pre_sum_path, delim = ',')
+conflimits = read_delim(conflimits_path, delim = ',')
+ttest = read_delim(ttest_path, delim = ',')
+```
+
+### 1. Distribution of Propensity Score
+
+```{r ps_sas}
+knitr::include_graphics(ps_distribution)
+```
+
+### Explanation
+
+From the figure above, we see that there is a huge difference in the distribution of propensity score of two groups. If we compare the heart attack rate directly, a misleading result may occur. Therefore, we need to implement the Propensity Score Matching/Weighting to achieve balance or comparability of treatment groups in terms of their measured pretreatment covariates, and thereby controls for confounding bias in estimating treatment effects.
+
+### 2. Comparison Table Between Prematch Data And Macthed Data {.tabset .tabset-fade .tabset-pills}
+
+```{r tables_sas, message=FALSE}
+tab = function(df, cap = "hello"){
+  df %>%
+  mutate(
+    `Heart Attack` = ifelse(heart_attack == 1, "YES", "NO"),
+    diabetes = ifelse(diabetes == 1, "Diabetes", "Non-Diabetes")
+    ) %>%
+  group_by(diabetes) %>%
+  mutate(pct = COUNT / sum(COUNT)) %>%
+  mutate(COUNT_PCT = sprintf('%.0f (%.2f%s)', COUNT, pct * 100, "%")) %>%
+  select(`Heart Attack`, diabetes, COUNT_PCT) %>%
+  pivot_wider(id_cols = `Heart Attack`,
+               names_from = 'diabetes', 
+               values_from = 'COUNT_PCT') %>%
+  knitr::kable(format = 'html', caption = cap) %>%
+  kableExtra::kable_styling("striped", full_width = TRUE)
+}
+```
+
+#### Before Match
+
+```{r table_1_sas}
+cap = paste0(
+"**Table 1.** Proportion of Heat Attack with Pre-matched Group"
+)
+tab(prematch,
+    cap = cap
+    )
+```
+
+#### After Match
+
+```{r table_2_sas}
+cap = paste0(
+"**Table 2.** Proportion of Heat Attack with Matched Group"
+)
+tab(matched,
+    cap = cap
+    )
+```
+
+#### Using Iverse Propensity Weight
+
+```{r table_3_sas}
+cap = paste0(
+"**Table 3.** Proportion of Heat Attack with Inverse Propensity Weight"
+)
+tab(inverseweight,
+    cap = cap
+    )
+```
+
+
+### Explanation
+
+These tables show how `Propensity Score Matching/Weighting` eliminate or reduce the effect of pre-treatment covariates on estimating treatment effect.     
+We can see that before matching/weighting, the rate of heart attack in diabetes patients is around 7 times larger than the non-diabetes patients. After matching/weighting, this rate decreases to only 2-3 times larger. This tells us the diabetes does have an effect on heart attack, but not that much.
+
+### 3. Comparison Graph Between Prematch Data And Macthed Data {.tabset .tabset-fade .tabset-pills}
+
+#### Age
+
+```{r age_sas}
+knitr::include_graphics(age_pre)
+knitr::include_graphics(age_after)
+```
+
+#### Year of Hyper
+
+```{r hyper_sas}
+knitr::include_graphics(hyper_pre)
+knitr::include_graphics(hyper_after)
+```
+
+#### Year of Smoke
+
+```{r smoke_sas}
+knitr::include_graphics(smoke_pre)
+knitr::include_graphics(smoke_after)
+```
+
+#### Blood Press
+
+```{r bloodpress_sas}
+knitr::include_graphics(press1_pre)
+knitr::include_graphics(press1_after)
+```
+
+#### Blood Press 2
+
+```{r bloodpress2_sas}
+knitr::include_graphics(press2_pre)
+knitr::include_graphics(press2_after)
+```
+
+### Explanation
+
+These graphs give us a direct and clear sense of how `Propensity Score Matching/Weighting` balance the pre-treatment covariates. Here I select `age`, `year of smoke`, `year of hyper`,
+`blood pressure` to illustrate this fact. Before matching, the distribution of these variables differs heavily on two groups. After matching, these pre-treatment covariates seems to be unified, which helps us to mimic the situations of Randomized clinical trials(RCT).
+
+### 4. Balance Checking For All Covariates And T Test {.tabset .tabset-fade .tabset-pills}
+
+#### MEAN/STD
+
+```{r Balance_sas}
+n = (length(names(matched_sum)) - 1) / 3
+pre_data = NULL
+matched_data = NULL
+
+for(i in 1:n){
+  data0 = pre_sum %>%
+    select(1, 2+3*(i-1), 3+3*(i-1), 4+3*(i-1))
+  names(data0) = c("diabetes", "variable", "mean", "std")
+  data_wider = data0 %>% 
+    mutate(mean_std = sprintf("%.3f(%.3f)", mean, std),
+           diabetes = ifelse(diabetes == "Yes",
+                             "Diabetes",
+                             "Non-diabetes")
+    ) %>%
+    select(diabetes, variable, mean_std) %>%
+    pivot_wider(names_from = diabetes,
+                values_from = mean_std)
+  pre_data = bind_rows(pre_data, data_wider)
+}
+
+for(i in 1:n){
+  data0 = matched_sum %>%
+    select(1, 2+3*(i-1), 3+3*(i-1), 4+3*(i-1))
+  names(data0) = c("diabetes", "variable", "mean", "std")
+  data_wider = data0 %>% 
+    mutate(mean_std = sprintf("%.3f(%.3f)", mean, std),
+           diabetes = ifelse(diabetes == "Yes",
+                             "Diabetes",
+                             "Non-diabetes")
+           ) %>%
+    select(diabetes, variable, mean_std) %>%
+    pivot_wider(names_from = diabetes,
+                values_from = mean_std)
+  matched_data = bind_rows(matched_data, data_wider)
+}
+
+tab = left_join(pre_data, matched_data, by = "variable")
+cap_tab = paste(
+  "**Table 4.** *The mean of all variables before and after matching.*",
+  "Numbers in parantheses are standard deviation."
+)
+cn = c('Covariate',
+       'Non-diabetes', 'diabetes',
+       'Non-diabetes', 'Non-diabetes'
+       )
+tab %>%
+  knitr::kable(
+    format = 'html', 
+    escape = FALSE, 
+    align = 'lcccc',
+    col.names = cn,
+    cap = cap_tab
+  ) %>%
+  kableExtra::kable_styling("striped", full_width = TRUE) %>%
+  kableExtra::add_header_above(header = c(' ' = 1,
+                                          'Before Matching' = 2,
+                                          'After Matching' = 2)
+                               )
+```
+
+#### T-TEST
+
+```{r ttest_sas}
+tab1 = conflimits %>%
+  select(Variable, Class, Method, Variances, Mean) %>%
+  left_join(ttest %>% 
+              select(-Variable),
+            by = c("Method", "Variances")
+            ) %>%
+  replace_na(list(Method = "-",
+                  Variances = "-",
+                  tValue = "-",
+                  DF = "-",
+                  Probt = "-")
+             )
+cap_tab1 = paste(
+  "**Table 5.** *Perform t test to show significance using two method.*",
+  "Diabetes indeed has an effect on heart attack."
+)
+tab1 %>%
+  knitr::kable(format = 'html', caption = cap_tab1) %>%
+  kableExtra::kable_styling("striped", full_width = TRUE)
+```
+
+### Explanation
+
+Finally, I provides two tables here. The first one is the mean-std pairs of all covariates which shows the difference of two groups. The second one shows the t test result, which indicates that after matching, the heart attack rate in diabetes patients is still higher than the non-diabetes patients.     
+So now we can answer the question at the beginning: Adult patients with diabetes do have higher risk for heart attack (myocardial infarction) in the United States.
